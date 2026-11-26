@@ -19,6 +19,7 @@ const App = (() => {
     ahpResultado: null,
     cenario: { demandaPct: 0, precoPct: 0, capacidadePct: 0 },
     planoAvancado: false,
+    detalhesPlanoAberto: false,
     erroCalculo: null,
     mensagem: null,
   };
@@ -58,6 +59,7 @@ const App = (() => {
         parametros: state.parametros,
         cenario: state.cenario,
         planoAvancado: state.planoAvancado,
+        detalhesPlanoAberto: state.detalhesPlanoAberto,
         semanaAtual: state.semanaAtual,
         ahp: state.ahp,
       }));
@@ -85,6 +87,7 @@ const App = (() => {
         };
       }
       if (typeof salvo.planoAvancado === "boolean") state.planoAvancado = salvo.planoAvancado;
+      if (typeof salvo.detalhesPlanoAberto === "boolean") state.detalhesPlanoAberto = salvo.detalhesPlanoAberto;
       const mAlt = salvo.ahp?.matrizesAlternativas;
       if (salvo.ahp && DADOS.matrizValida(salvo.ahp.matrizCriterios, 4) &&
           mAlt && Object.values(mAlt).length === 4 &&
@@ -173,15 +176,19 @@ const App = (() => {
     }[m] || m;
   }
 
-  function alertaPrincipal(planos) {
+  function alertaPrincipalObj(planos) {
     const capacidadeTotal = planos.reduce((s, p) => s + p.capacidadeAbateAnimais, 0);
     const desejadosTotal = planos.reduce((s, p) => s + p.animaisDesejados, 0);
     const excesso = Math.max(0, desejadosTotal - capacidadeTotal);
     if (excesso > 0.001) {
-      return `Capacidade total insuficiente: ${Math.ceil(excesso)} animais acima do limite.`;
+      return { tipo: "capacidade", mensagem: `Capacidade total insuficiente: ${Math.ceil(excesso)} animais acima do limite.` };
     }
     const primeiro = planos.flatMap((p) => p.alertas)[0];
-    return primeiro ? primeiro.mensagem : "Sem alertas";
+    return primeiro ? { tipo: primeiro.tipo, mensagem: primeiro.mensagem } : { tipo: "ok", mensagem: "Sem alertas" };
+  }
+
+  function alertaPrincipal(planos) {
+    return alertaPrincipalObj(planos).mensagem;
   }
 
   function renderPainel() {
@@ -606,7 +613,9 @@ const App = (() => {
     const estoqueFinalAtual = planosAtual.reduce((s, p) => s + p.estoqueFinalKg, 0);
     const caprinosAtual = planosAtual.find((p) => p.produtoId === "caprino")?.animaisAbatidos || 0;
     const ovinosAtual = planosAtual.find((p) => p.produtoId === "ovino")?.animaisAbatidos || 0;
-    const alertaAtual = alertaPrincipal(planosAtual);
+    const alertaAtualObj = alertaPrincipalObj(planosAtual);
+    const alertaAtual = alertaAtualObj.mensagem;
+    const alertaClasse = alertaAtualObj.tipo;
     const presets = cenarios.slice(0, 3);
     const cenarioAtualNome = presets.find((p) =>
       ["demandaPct", "precoPct", "capacidadePct"].every((chave) =>
@@ -650,8 +659,8 @@ const App = (() => {
               <div class="resumo-item"><span class="mini">Margem</span><strong>${fmtBRL(totalAtual.margem)}</strong><small>no período</small></div>
             </div>
             <div class="lista-alertas" aria-live="polite">
-              <div class="alerta ${alertaAtual === "Sem alertas" ? "ok" : "capacidade"}">
-                <strong>${alertaAtual === "Sem alertas" ? "Sem alertas" : "Atenção"}</strong>
+              <div class="alerta ${alertaClasse}">
+                <strong>${alertaClasse === "ok" ? "Sem alertas" : "Atenção"}</strong>
                 <span>${escapeHtml(alertaAtual)}</span>
               </div>
             </div>
@@ -684,7 +693,7 @@ const App = (() => {
             ${tabelaCenarios}
           </section>
 
-          <details class="card span-2 detalhes-plano">
+          <details class="card span-2 detalhes-plano" ${state.detalhesPlanoAberto ? "open" : ""}>
             <summary>Ajustes avançados por espécie</summary>
             <p class="nota">Edite cobertura, capacidade, preços e custos. O plano base é recalculado ao alterar. O resumo acima continua refletindo o cenário escolhido.</p>
             <div class="grid-2">${cards}</div>
@@ -1120,6 +1129,7 @@ ovino;800</pre>
     state.parametros = { ...DADOS.PARAMETROS };
     state.cenario = { demandaPct: 0, precoPct: 0, capacidadePct: 0 };
     state.planoAvancado = false;
+    state.detalhesPlanoAberto = false;
     state.ahp = Fornecedores.restaurarExemplo();
     state.semanaAtual = 52;
     try { localStorage.removeItem(CHAVE); } catch (_) {}
@@ -1303,6 +1313,13 @@ ovino;800</pre>
         salvar();
         render();
       });
+
+      app.addEventListener("toggle", (event) => {
+        if (event.target.matches("details.detalhes-plano")) {
+          state.detalhesPlanoAberto = event.target.open;
+          salvar();
+        }
+      }, true);
     }
   }
 
