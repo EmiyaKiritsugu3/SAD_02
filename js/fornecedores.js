@@ -11,22 +11,22 @@ const Fornecedores = (() => {
 
   const ALTERNATIVAS = [
     {
-      id: "boa-vista", nome: "Fazenda Boa Vista", cidade: "Caicó/RN",
+      id: "boa-vista", nome: "Fazenda Boa Vista", nomeCurto: "Boa Vista", cidade: "Caicó/RN",
       conformidadeSanitaria: true, precoKgVivo: 13.10, qualidade: 8.5,
       prazoDias: 2, confiabilidade: 9.0,
     },
     {
-      id: "cooperativa", nome: "Cooperativa Seridó", cidade: "Caicó/RN",
+      id: "cooperativa", nome: "Cooperativa Seridó", nomeCurto: "Cooperativa", cidade: "Caicó/RN",
       conformidadeSanitaria: true, precoKgVivo: 12.80, qualidade: 7.5,
       prazoDias: 4, confiabilidade: 8.5,
     },
     {
-      id: "uaua", nome: "Lote de Uauá/BA", cidade: "Uauá/BA",
+      id: "uaua", nome: "Lote de Uauá/BA", nomeCurto: "Uauá", cidade: "Uauá/BA",
       conformidadeSanitaria: true, precoKgVivo: 12.40, qualidade: 7.0,
       prazoDias: 7, confiabilidade: 6.5,
     },
     {
-      id: "informal", nome: "Lote informal sem GTA", cidade: "Região do Seridó",
+      id: "informal", nome: "Lote informal sem GTA", nomeCurto: "Informal", cidade: "Região do Seridó",
       conformidadeSanitaria: false, precoKgVivo: 11.50, qualidade: 7.0,
       prazoDias: 3, confiabilidade: 6.0,
     },

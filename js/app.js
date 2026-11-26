@@ -567,6 +567,165 @@ const App = (() => {
     `;
   }
 
+  function parseValorMatriz(valor) {
+    const s = String(valor ?? "").trim().replace(",", ".");
+    if (s === "") return 1;
+    if (s.includes("/")) {
+      const [a, b] = s.split("/").map(Number);
+      if (Number.isFinite(a) && Number.isFinite(b) && b !== 0) return a / b;
+    }
+    const n = Number(s);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+  function formatarMatriz(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return "1";
+    return String(Math.round(n * 1000) / 1000);
+  }
+
+  function matrizTabela(matriz, nomes, tipo, criterioId = "", rotuloPrimeira = "Critério") {
+    const n = nomes.length;
+    const head = nomes.map((nome) => `<th scope="col">${escapeHtml(nome)}</th>`).join("");
+    let linhas = "";
+    for (let i = 0; i < n; i++) {
+      let celulas = "";
+      for (let j = 0; j < n; j++) {
+        if (i === j) {
+          celulas += `<td class="matriz-diagonal" aria-label="Diagonal">1</td>`;
+        } else if (j > i) {
+          celulas += `<td><input class="matriz-input" type="text" inputmode="decimal" value="${formatarMatriz(matriz[i][j])}" data-matriz="${tipo}" ${criterioId ? `data-criterio="${criterioId}"` : ""} data-i="${i}" data-j="${j}" aria-label="Comparação entre ${escapeHtml(nomes[i])} e ${escapeHtml(nomes[j])}"></td>`;
+        } else {
+          celulas += `<td class="matriz-reciproca">${formatarMatriz(matriz[i][j])}</td>`;
+        }
+      }
+      linhas += `<tr><th scope="row">${escapeHtml(nomes[i])}</th>${celulas}</tr>`;
+    }
+    return `<div class="tabela-wrap"><table class="tabela matriz"><thead><tr><th scope="col">${escapeHtml(rotuloPrimeira)}</th>${head}</tr></thead><tbody>${linhas}</tbody></table></div>`;
+  }
+
+  function renderFornecedores() {
+    const resultado = state.ahpResultado || { criterios: { weights: [], CR: 0 }, ranking: [], excluidos: [] };
+    const ranking = resultado.ranking || [];
+    const excluidos = resultado.excluidos || [];
+    const pesos = resultado.criterios?.weights || [];
+    const cr = resultado.criterios?.CR || 0;
+    const conformes = Fornecedores.ALTERNATIVAS.filter((a) => a.conformidadeSanitaria);
+    const nomesCrit = Fornecedores.CRITERIOS.map((c) => c.nome);
+    const nomesAlt = conformes.map((a) => a.nomeCurto || a.nome);
+
+    const pesosItens = Fornecedores.CRITERIOS.map((c, i) => ({ rotulo: c.nome, valor: pesos[i] || 0 }));
+    const crBadge = `<span class="badge ${cr <= 0.10 ? "ok" : "alerta"}">CR ${fmtPct(cr)}</span>`;
+    const crAlerta = cr > 0.10
+      ? `<div class="alerta capacidade"><strong>Consistência</strong><span>CR de ${fmtPct(cr)} acima de 10%. O ranking ainda é calculado, mas as comparações precisam ser revisadas.</span></div>`
+      : `<div class="alerta ok"><strong>Consistência</strong><span>CR de ${fmtPct(cr)} dentro do limite de 10%.</span></div>`;
+
+    const alternativasDetalhes = Fornecedores.CRITERIOS.map((c, i) => {
+      const M = state.ahp.matrizesAlternativas[c.id];
+      return `
+        <details class="matriz-detalhe">
+          <summary>${escapeHtml(c.nome)} <span class="badge ${cr <= 0.10 ? "ok" : "premissa"}">peso ${fmtPct(pesos[i] || 0)}</span></summary>
+          <p class="nota">${escapeHtml(c.descricao)}</p>
+          ${M ? matrizTabela(M, nomesAlt, "alternativa", c.id, "Alternativa") : `<p class="nota">Matriz indisponível.</p>`}
+        </details>`;
+    }).join("");
+
+    const linhasRanking = ranking.map((f) => `
+      <tr>
+        <td><strong>${f.rank}º</strong></td>
+        <td><strong>${escapeHtml(f.nome)}</strong></td>
+        <td>${escapeHtml(f.cidade)}</td>
+        <td class="num">${fmtBRL(f.precoKgVivo)}</td>
+        <td class="num destaque">${fmtPct(f.score)}</td>
+        <td><span class="badge ok" aria-label="Conforme" title="Conforme">✓</span></td>
+      </tr>`).join("");
+
+    const excluidosHtml = excluidos.length
+      ? `<ul class="lista-excluidos">${excluidos.map((a) => `<li><strong>${escapeHtml(a.nome)}</strong> — ${escapeHtml(a.cidade)} · sem conformidade sanitária</li>`).join("")}</ul>`
+      : `<p class="nota">Nenhum fornecedor excluído pelo gate sanitário.</p>`;
+
+    return `
+      <div class="grid-2">
+        <section class="card span-2" aria-labelledby="titulo-ahp">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-ahp">Como o AHP decide</h2>
+              <p>Comparações pareadas, consistência e gate sanitário.</p>
+            </div>
+            ${crBadge}
+          </div>
+          <ul class="lista-explicacao">
+            <li><strong>Escala 1–9:</strong> 1 = igual; 3 = moderadamente mais importante; 5 = forte; 7 = muito forte; 9 = extremo.</li>
+            <li><strong>Matriz recíproca:</strong> se A é 3× mais importante que B, B é 1/3 de A. O sistema preenche a célula espelhada.</li>
+            <li><strong>Consistência:</strong> CR ≤ 10% é o limite usual. Acima disso, revise as comparações.</li>
+            <li><strong>Gate sanitário:</strong> fornecedor sem conformidade é excluído antes do cálculo. Nenhum peso compensa isso.</li>
+            <li><strong>Score final:</strong> soma do peso de cada critério × prioridade da alternativa naquele critério.</li>
+          </ul>
+          <div style="margin-top:12px">${crAlerta}</div>
+        </section>
+
+        <section class="card" aria-labelledby="titulo-pesos">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-pesos">Pesos dos critérios</h2>
+              <p>Prioridade relativa resultante das comparações.</p>
+            </div>
+          </div>
+          ${Charts.barras({ itens: pesosItens, formato: Charts.formatarPct, height: 210 })}
+        </section>
+
+        <section class="card" aria-labelledby="titulo-ranking">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-ranking">Ranking final</h2>
+              <p>Somente fornecedores com conformidade sanitária.</p>
+            </div>
+          </div>
+          <div class="tabela-wrap">
+            <table class="tabela">
+              <caption>Score normalizado; maior é melhor.</caption>
+              <thead><tr><th>#</th><th>Fornecedor</th><th>Cidade</th><th class="num">Preço/kg vivo</th><th class="num">Score</th><th>Gate</th></tr></thead>
+              <tbody>${linhasRanking || `<tr><td colspan="6">Sem fornecedores conformes.</td></tr>`}</tbody>
+            </table>
+          </div>
+          <p class="nota">${ranking.length ? `Recomendado: ${escapeHtml(ranking[0].nome)}.` : "Ajuste o cadastro de fornecedores."}</p>
+        </section>
+
+        <section class="card span-2" aria-labelledby="titulo-matriz-criterios">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-matriz-criterios">Matriz de comparação dos critérios</h2>
+              <p>Edite o triângulo superior; o inferior é recíproco e calculado automaticamente.</p>
+            </div>
+            <button class="botao secundario" data-acao="restaurar-ahp" type="button">Restaurar exemplo</button>
+          </div>
+          ${matrizTabela(state.ahp.matrizCriterios, nomesCrit, "criterios")}
+        </section>
+
+        <section class="card span-2" aria-labelledby="titulo-matriz-alt">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-matriz-alt">Comparações das alternativas por critério</h2>
+              <p>Abra cada critério e ajuste as comparações entre os fornecedores conformes.</p>
+            </div>
+          </div>
+          ${alternativasDetalhes}
+        </section>
+
+        <section class="card span-2" aria-labelledby="titulo-excluidos">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-excluidos">Fornecedores excluídos</h2>
+              <p>O gate sanitário remove o fornecedor do ranking, independentemente do preço.</p>
+            </div>
+            <span class="badge ${excluidos.length ? "alerta" : "ok"}">${excluidos.length} excluído(s)</span>
+          </div>
+          ${excluidosHtml}
+        </section>
+      </div>
+    `;
+  }
+
   function renderEmConstrucao(aba) {
     const nome = TITULOS[aba]?.[0] || aba;
     return `<section class="placeholder"><h2>${escapeHtml(nome)}</h2><p>Esta tela será conectada na próxima etapa da implementação.</p></section>`;
@@ -591,6 +750,7 @@ const App = (() => {
     if (state.aba === "painel") app.innerHTML = renderPainel();
     else if (state.aba === "previsao") app.innerHTML = renderPrevisao();
     else if (state.aba === "plano") app.innerHTML = renderPlano();
+    else if (state.aba === "fornecedores") app.innerHTML = renderFornecedores();
     else app.innerHTML = renderEmConstrucao(state.aba);
   }
 
@@ -645,6 +805,13 @@ const App = (() => {
         render();
         toast("Parâmetros do plano restaurados.");
       }
+      if (acao.dataset.acao === "restaurar-ahp") {
+        state.ahp = Fornecedores.restaurarExemplo();
+        calcularTudo();
+        salvar();
+        render();
+        toast("Matrizes AHP restauradas.");
+      }
       if (acao.dataset.acao === "restaurar-dados") {
         restaurarDados();
         toast("Dados de exemplo restaurados.");
@@ -662,6 +829,29 @@ const App = (() => {
     const app = document.getElementById("app");
     if (app) {
       app.addEventListener("change", (event) => {
+        const matrizInput = event.target.closest("[data-matriz]");
+        if (matrizInput) {
+          const tipo = matrizInput.dataset.matriz;
+          const i = Number(matrizInput.dataset.i);
+          const j = Number(matrizInput.dataset.j);
+          let valor = parseValorMatriz(matrizInput.value);
+          valor = Math.max(1 / 9, Math.min(9, valor));
+          if (tipo === "criterios") {
+            state.ahp.matrizCriterios[i][j] = valor;
+            state.ahp.matrizCriterios[j][i] = 1 / valor;
+          } else {
+            const matriz = state.ahp.matrizesAlternativas[matrizInput.dataset.criterio];
+            if (matriz) {
+              matriz[i][j] = valor;
+              matriz[j][i] = 1 / valor;
+            }
+          }
+          calcularTudo();
+          salvar();
+          render();
+          return;
+        }
+
         const slider = event.target.closest("[data-slider]");
         if (slider) {
           const nome = slider.dataset.slider;
