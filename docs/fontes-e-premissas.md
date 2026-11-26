@@ -76,3 +76,16 @@ O arquivo é processado no navegador; nada é enviado a servidor. Em caso de err
 - Não há rastreabilidade SIF/MAPA, NF-e, balanças, WMS ou otimização de cortes.
 - O plano é heurístico, não uma otimização global.
 - O ranking AHP usa julgamentos humanos; a consistência é verificada pelo CR.
+
+## 6. Validação
+
+- **2026-11-26:** 38 testes automatizados passando (`npm test`).
+- Aplicação verificada no navegador em 360 px, 768 px e 1366 px, sem erros de
+  console e sem overflow horizontal.
+- Importação CSV testada com arquivo válido e inválido; o inválido não altera o
+  estado anterior.
+- Persistência em `localStorage` e restauração de exemplo verificadas.
+- Slides: 12 páginas, fontes locais (Fraunces/Archivo), PDF gerado a partir do
+  deck renderizado.
+- **Pendente:** validar os dados e o recorte com um frigorífico, cooperativa ou
+  EMATER; confirmar a proposta com o professor.
