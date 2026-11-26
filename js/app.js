@@ -86,6 +86,27 @@ const App = (() => {
     return { metodo: state.metodo, params, metricas: Previsao.backtest(serie, state.metodo, params, 4) };
   }
 
+  function inputPlano(produto) {
+    const prev = state.previsoes[produto.id];
+    const seguranca = produto.estoqueSegurancaKgOverride !== undefined
+      ? Math.max(0, Number(produto.estoqueSegurancaKgOverride) || 0)
+      : (prev?.seguranca ?? 0);
+    return {
+      produto,
+      previsaoSemana: prev?.prev4?.[0] || 0,
+      estoqueAtualKg: produto.estoqueKg,
+      estoqueSegurancaKg: seguranca,
+      coberturaSemanas: produto.coberturaSemanas,
+      capacidadeAbateAnimais: produto.capacidadeAbateAnimais,
+      capacidadeCamaraKg: produto.capacidadeCamaraKg,
+      estoqueMinKg: produto.estoqueMinKg,
+      precoVendaKg: produto.precoVendaKg,
+      custoCompraKg: produto.custoCompraKg,
+      custoAbateKg: produto.custoAbateKg,
+      animaisVivos: 0,
+    };
+  }
+
   function calcularTudo() {
     state.planos = {};
     state.previsoes = {};
@@ -93,23 +114,12 @@ const App = (() => {
       const serie = state.dados.DEMANDA[produto.id] || [];
       const escolha = metodoEscolhido(serie);
       const prev4 = Previsao.prever(serie, escolha.metodo, escolha.params, 4);
-      const seguranca = Estoque.estoqueSeguranca(serie, state.parametros.z, state.parametros.leadTimeSemanas);
-      const plano = Plano.calcularPlano({
-        produto,
-        previsaoSemana: prev4[0] || 0,
-        estoqueAtualKg: produto.estoqueKg,
-        estoqueSegurancaKg: seguranca,
-        coberturaSemanas: produto.coberturaSemanas,
-        capacidadeAbateAnimais: produto.capacidadeAbateAnimais,
-        capacidadeCamaraKg: produto.capacidadeCamaraKg,
-        estoqueMinKg: produto.estoqueMinKg,
-        precoVendaKg: produto.precoVendaKg,
-        custoCompraKg: produto.custoCompraKg,
-        custoAbateKg: produto.custoAbateKg,
-        animaisVivos: 0,
-      });
-      state.previsoes[produto.id] = { escolha, prev4, seguranca, serie };
-      state.planos[produto.id] = plano;
+      const seguranca = produto.estoqueSegurancaKgOverride !== undefined
+        ? Math.max(0, Number(produto.estoqueSegurancaKgOverride) || 0)
+        : Estoque.estoqueSeguranca(serie, state.parametros.z, state.parametros.leadTimeSemanas);
+      const segurancaArredondada = Math.round(seguranca * 10) / 10;
+      state.previsoes[produto.id] = { escolha, prev4, seguranca: segurancaArredondada, serie };
+      state.planos[produto.id] = Plano.calcularPlano(inputPlano(produto));
     }
     state.consolidado = Plano.consolidar(Object.values(state.planos));
     state.ahpResultado = Fornecedores.avaliar(state.ahp);
@@ -425,6 +435,138 @@ const App = (() => {
     `;
   }
 
+  function renderPlano() {
+    const produtos = state.dados.PRODUTOS;
+    const rotuloAlerta = {
+      capacidade: "Capacidade", camara: "Câmara fria", ruptura: "Ruptura",
+      "estoque-minimo": "Estoque mínimo", "estoque-excedente": "Excedente",
+    };
+
+    const campoNumero = (rotulo, nome, valor, step, produtoId, extra = "") => `
+      <label class="campo">${rotulo}
+        <input type="number" min="0" step="${step}" value="${Number(valor) || 0}" data-campo="${nome}" data-produto="${produtoId}" ${extra}>
+      </label>`;
+
+    const cards = produtos.map((p) => {
+      const prev = state.previsoes[p.id];
+      const plano = state.planos[p.id];
+      const seguranca = p.estoqueSegurancaKgOverride !== undefined
+        ? Number(p.estoqueSegurancaKgOverride)
+        : prev.seguranca;
+      const alertas = plano.alertas.length
+        ? plano.alertas.map((a) => `<div class="alerta ${escapeHtml(a.tipo)}"><strong>${escapeHtml(rotuloAlerta[a.tipo] || a.tipo)}</strong><span>${escapeHtml(a.mensagem)}</span></div>`).join("")
+        : `<div class="alerta ok"><strong>Sem alertas</strong><span>Plano dentro da capacidade e do estoque mínimo.</span></div>`;
+
+      const mini = [
+        ["Animais a abater", fmtNum(plano.animaisAbatidos)],
+        ["Produção", fmtKg(plano.producaoKg)],
+        ["Estoque final", fmtKg(plano.estoqueFinalKg)],
+        ["Compra de animais", fmtNum(plano.necessidadeCompraAnimais)],
+        ["Receita", fmtBRL(plano.receita)],
+        ["Custo do vendido", fmtBRL(plano.custoVendido)],
+        ["Margem do período", fmtBRL(plano.margem)],
+        ["Capacidade utilizada", fmtPct(plano.capacidadeUtilizada)],
+      ];
+
+      return `
+        <section class="card span-2 plano-card" aria-labelledby="plano-${p.id}">
+          <div class="card-head">
+            <div>
+              <h2 id="plano-${p.id}">${escapeHtml(p.nome)}</h2>
+              <p>Previsão ${fmtKg(prev.prev4[0])} · ${escapeHtml(metodoLabel(prev.escolha.metodo))} · segurança calculada ${fmtKg(seguranca)}</p>
+            </div>
+            <span class="badge ${plano.alertas.length ? "alerta" : "ok"}">${plano.alertas.length ? `${plano.alertas.length} alerta(s)` : "Dentro dos limites"}</span>
+          </div>
+
+          <div class="form-grid">
+            <label class="campo">Previsão da semana
+              <input type="number" value="${Math.round(prev.prev4[0])}" readonly>
+            </label>
+            ${campoNumero("Estoque atual (kg)", "estoqueKg", p.estoqueKg, 1, p.id)}
+            ${campoNumero("Estoque de segurança (kg)", "estoqueSegurancaKg", seguranca, 1, p.id)}
+            ${campoNumero("Cobertura (semanas)", "coberturaSemanas", p.coberturaSemanas, 0.5, p.id)}
+            ${campoNumero("Capacidade de abate (animais)", "capacidadeAbateAnimais", p.capacidadeAbateAnimais, 1, p.id)}
+            ${campoNumero("Capacidade da câmara (kg)", "capacidadeCamaraKg", p.capacidadeCamaraKg, 1, p.id)}
+            ${campoNumero("Estoque mínimo (kg)", "estoqueMinKg", p.estoqueMinKg, 1, p.id)}
+            ${campoNumero("Preço de venda (R$/kg)", "precoVendaKg", p.precoVendaKg, 0.01, p.id)}
+            ${campoNumero("Custo de compra (R$/kg)", "custoCompraKg", p.custoCompraKg, 0.01, p.id)}
+            ${campoNumero("Custo de abate (R$/kg)", "custoAbateKg", p.custoAbateKg, 0.01, p.id)}
+          </div>
+
+          <div class="mini-grid">
+            ${mini.map(([rotulo, valor]) => `<div class="mini"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(valor)}</strong></div>`).join("")}
+          </div>
+          <p class="nota">Custo de produção total (inclui o que vai para estoque): ${fmtBRL(plano.custoProducao)} · Valor do estoque final: ${fmtBRL(plano.valorEstoque)}.</p>
+
+          <div class="lista-alertas">${alertas}</div>
+        </section>
+      `;
+    }).join("");
+
+    const slider = (rotulo, campo, valor, min, max) => `
+      <label class="campo">${rotulo}
+        <div class="slider-linha">
+          <input type="range" min="${min}" max="${max}" step="1" value="${Math.round(valor * 100)}" data-slider="${campo}">
+          <span class="valor-slider">${Math.round(valor * 100)}%</span>
+        </div>
+      </label>`;
+
+    const cenarios = [
+      { nome: "Pessimista", cenario: { demandaPct: -0.10, precoPct: -0.05, capacidadePct: -0.10 } },
+      { nome: "Base", cenario: { demandaPct: 0, precoPct: 0, capacidadePct: 0 } },
+      { nome: "Otimista", cenario: { demandaPct: 0.10, precoPct: 0.05, capacidadePct: 0.10 } },
+      { nome: "Cenário atual", cenario: state.cenario },
+    ];
+
+    const linhasCenarios = cenarios.map(({ nome, cenario }) => {
+      const planos = produtos.map((p) => Plano.simularCenario(inputPlano(p), cenario));
+      const total = Plano.consolidar(planos);
+      const capacidadeTotal = planos.reduce((s, p) => s + p.capacidadeAbateAnimais, 0);
+      const desejadosTotal = planos.reduce((s, p) => s + p.animaisDesejados, 0);
+      const excessoCapacidade = Math.max(0, desejadosTotal - capacidadeTotal);
+      const alerta = excessoCapacidade > 0.001
+        ? { mensagem: `Capacidade total insuficiente: ${Math.ceil(excessoCapacidade)} animais acima do limite.` }
+        : planos.flatMap((p) => p.alertas)[0];
+      return `
+        <tr>
+          <td><strong>${escapeHtml(nome)}</strong></td>
+          <td class="num">${fmtNum(total.animaisAbatidos)}</td>
+          <td class="num">${fmtBRL(total.margem)}</td>
+          <td>${alerta ? escapeHtml(alerta.mensagem) : "Sem alertas"}</td>
+        </tr>`;
+    }).join("");
+
+    return `
+      <div class="grid-2">
+        <section class="card span-2" aria-labelledby="titulo-plano-parametros">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-plano-parametros">Parâmetros do plano</h2>
+              <p>Os cartões abaixo mostram o plano base. A tabela simula choques de demanda, preço e capacidade.</p>
+            </div>
+            <button class="botao secundario" data-acao="restaurar-parametros" type="button">Restaurar parâmetros</button>
+          </div>
+          <div class="slider-grid">
+            ${slider("Demanda", "demandaPct", state.cenario.demandaPct, -20, 20)}
+            ${slider("Preço de venda", "precoPct", state.cenario.precoPct, -15, 15)}
+            ${slider("Capacidade de abate", "capacidadePct", state.cenario.capacidadePct, -20, 20)}
+          </div>
+          <p class="nota">Solte o slider para recalcular. Os valores percentuais são aplicados sobre a previsão, o preço de venda e a capacidade de cada produto.</p>
+
+          <div class="tabela-wrap" style="margin-top:14px">
+            <table class="tabela">
+              <caption>Cenários de sensibilidade do plano consolidado.</caption>
+              <thead><tr><th>Cenário</th><th class="num">Animais a abater</th><th class="num">Margem</th><th>Alerta principal</th></tr></thead>
+              <tbody>${linhasCenarios}</tbody>
+            </table>
+          </div>
+        </section>
+
+        ${cards}
+      </div>
+    `;
+  }
+
   function renderEmConstrucao(aba) {
     const nome = TITULOS[aba]?.[0] || aba;
     return `<section class="placeholder"><h2>${escapeHtml(nome)}</h2><p>Esta tela será conectada na próxima etapa da implementação.</p></section>`;
@@ -448,6 +590,7 @@ const App = (() => {
     if (!app) return;
     if (state.aba === "painel") app.innerHTML = renderPainel();
     else if (state.aba === "previsao") app.innerHTML = renderPrevisao();
+    else if (state.aba === "plano") app.innerHTML = renderPlano();
     else app.innerHTML = renderEmConstrucao(state.aba);
   }
 
@@ -487,6 +630,21 @@ const App = (() => {
         render();
         toast("Plano recalculado com os parâmetros atuais.");
       }
+      if (acao.dataset.acao === "restaurar-parametros") {
+        for (const padrao of DADOS.PRODUTOS) {
+          const produto = state.dados.PRODUTOS.find((p) => p.id === padrao.id);
+          if (!produto) continue;
+          for (const chave of ["estoqueMinKg", "capacidadeAbateAnimais", "capacidadeCamaraKg", "coberturaSemanas", "precoVendaKg", "custoCompraKg", "custoAbateKg"]) {
+            produto[chave] = padrao[chave];
+          }
+          delete produto.estoqueSegurancaKgOverride;
+        }
+        state.cenario = { demandaPct: 0, precoPct: 0, capacidadePct: 0 };
+        calcularTudo();
+        salvar();
+        render();
+        toast("Parâmetros do plano restaurados.");
+      }
       if (acao.dataset.acao === "restaurar-dados") {
         restaurarDados();
         toast("Dados de exemplo restaurados.");
@@ -504,9 +662,32 @@ const App = (() => {
     const app = document.getElementById("app");
     if (app) {
       app.addEventListener("change", (event) => {
+        const slider = event.target.closest("[data-slider]");
+        if (slider) {
+          const nome = slider.dataset.slider;
+          state.cenario[nome] = (Number(slider.value) || 0) / 100;
+          salvar();
+          render();
+          return;
+        }
+
         const campo = event.target.closest("[data-campo]");
         if (!campo) return;
         const nome = campo.dataset.campo;
+
+        if (campo.dataset.produto) {
+          const produto = state.dados.PRODUTOS.find((p) => p.id === campo.dataset.produto);
+          if (!produto) return;
+          const valor = Number(campo.value);
+          if (!Number.isFinite(valor) || valor < 0) { render(); return; }
+          if (nome === "estoqueSegurancaKg") produto.estoqueSegurancaKgOverride = valor;
+          else produto[nome] = valor;
+          calcularTudo();
+          salvar();
+          render();
+          return;
+        }
+
         if (nome === "metodo") state.metodo = campo.value;
         if (nome === "janela") state.parametros.janela = Math.max(1, Math.min(12, Number(campo.value) || 4));
         if (nome === "alfa") state.parametros.alfa = Math.max(0.05, Math.min(0.95, Number(campo.value) || 0.3));
