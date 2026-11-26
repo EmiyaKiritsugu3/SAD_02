@@ -726,6 +726,142 @@ const App = (() => {
     `;
   }
 
+  function renderDados() {
+    const caprino2025 = DADOS.REBANHO.caprino.find((x) => x.ano === 2025)?.valor || 0;
+    const ovino2025 = DADOS.REBANHO.ovino.find((x) => x.ano === 2025)?.valor || 0;
+    const produtos = state.dados.PRODUTOS;
+    const semanas = state.dados.DEMANDA.caprino?.length || 0;
+
+    const linhasProdutos = produtos.map((p) => `
+      <tr>
+        <td><strong>${escapeHtml(p.nome)}</strong></td>
+        <td class="num">${fmtNum(p.kgCarcacaAnimal, 2)} kg</td>
+        <td class="num">${fmtBRL(p.precoVendaKg)}</td>
+        <td class="num">${fmtBRL(p.custoCompraKg)}</td>
+        <td class="num">${fmtBRL(p.custoAbateKg)}</td>
+        <td class="num">${fmtKg(p.estoqueKg)}</td>
+        <td class="num">${fmtNum(p.coberturaSemanas, 1)} sem.</td>
+      </tr>`).join("");
+
+    return `
+      <div class="grid-2">
+        <section class="card span-2" aria-labelledby="titulo-dados">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-dados">Dados e premissas</h2>
+              <p>O que é fonte pública, o que é estimativa e o que é premissa editável.</p>
+            </div>
+            <div class="badges">
+              <span class="badge fonte">Fonte</span>
+              <span class="badge estimativa">Estimativa</span>
+              <span class="badge premissa">Premissa</span>
+            </div>
+          </div>
+          <div class="tabela-wrap">
+            <table class="tabela">
+              <caption>Base atual: ${semanas} semanas de demanda ilustrativa e ${produtos.length} produtos.</caption>
+              <thead><tr><th>Fonte</th><th>Uso no SAD</th><th>Dado usado</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>IBGE — PPM 2025</strong><br><small>Tabela 3939, variável 105</small></td>
+                  <td>Rebanho de Caicó/RN</td>
+                  <td>${fmtNum(caprino2025)} caprinos · ${fmtNum(ovino2025)} ovinos</td>
+                  <td><span class="badge fonte">Fonte</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Embrapa CIM/Cepea</strong><br><small>Boletim Set/2026</small></td>
+                  <td>Preço de referência</td>
+                  <td>RN: ${fmtBRL(DADOS.PRECOS.rnVivoKg)}/kg vivo · carcaça NE: ${fmtBRL(DADOS.PRECOS.carcacaNordesteKgMin)}–${fmtBRL(DADOS.PRECOS.carcacaNordesteKgMax)}/kg</td>
+                  <td><span class="badge fonte">Fonte</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Embrapa Caprinos e Ovinos</strong><br><small>Doc 133/2019 e coeficientes técnicos</small></td>
+                  <td>Custos e conversão animal → carcaça</td>
+                  <td>Peso ao abate 28–32 kg; rendimento 45–50%; COE/COT/CT de referência</td>
+                  <td><span class="badge fonte">Fonte</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Série de demanda</strong><br><small>Gerada com seed fixa</small></td>
+                  <td>Previsão e plano</td>
+                  <td>${semanas} semanas; ~60 caprinos + 60 ovinos/semana; sazonalidade de junho/dezembro</td>
+                  <td><span class="badge estimativa">Estimativa</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Fornecedores</strong><br><small>Personas ilustrativas</small></td>
+                  <td>Ranking AHP</td>
+                  <td>3 conformes + 1 excluído por falta de GTA</td>
+                  <td><span class="badge estimativa">Estimativa</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Parâmetros do plano</strong><br><small>Editáveis na aba Plano</small></td>
+                  <td>Capacidade, cobertura, preços e custos</td>
+                  <td>Capacidade 180 animais/semana; câmara 6.000 kg; cobertura 1 semana</td>
+                  <td><span class="badge premissa">Premissa</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card span-2" aria-labelledby="titulo-produtos">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-produtos">Parâmetros por produto</h2>
+              <p>Valores atuais usados no cálculo. Edite na aba Plano semanal.</p>
+            </div>
+          </div>
+          <div class="tabela-wrap">
+            <table class="tabela">
+              <caption>Conversão e economia por espécie.</caption>
+              <thead><tr><th>Produto</th><th class="num">kg carcaça/animal</th><th class="num">Preço venda</th><th class="num">Custo compra</th><th class="num">Custo abate</th><th class="num">Estoque atual</th><th class="num">Cobertura</th></tr></thead>
+              <tbody>${linhasProdutos}</tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card span-2" aria-labelledby="titulo-importar">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-importar">Importar dados</h2>
+              <p>O arquivo é processado no navegador; nada é enviado para servidor.</p>
+            </div>
+            <span class="badge premissa">CSV</span>
+          </div>
+          <div class="import-grid">
+            <div class="import-card">
+              <h3>Demanda semanal</h3>
+              <p class="nota">Colunas: <code>semana;caprino;ovino</code>. Use ponto e vírgula e uma linha por semana.</p>
+              <input type="file" accept=".csv,text/csv" data-import="demanda" aria-label="Importar CSV de demanda">
+              <pre class="exemplo-csv">semana;caprino;ovino
+1;700;900
+2;710;910</pre>
+            </div>
+            <div class="import-card">
+              <h3>Estoque atual</h3>
+              <p class="nota">Colunas: <code>produto;estoque_kg</code>. Produtos aceitos: caprino e ovino.</p>
+              <input type="file" accept=".csv,text/csv" data-import="estoque" aria-label="Importar CSV de estoque">
+              <pre class="exemplo-csv">produto;estoque_kg
+caprino;600
+ovino;800</pre>
+            </div>
+          </div>
+          <p class="nota">Após importar, a previsão e o plano são recalculados. Em caso de erro, os dados anteriores são mantidos.</p>
+        </section>
+
+        <section class="card span-2" aria-labelledby="titulo-reset">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-reset">Restaurar exemplo</h2>
+              <p>Volta aos dados públicos + série ilustrativa e limpa o estado salvo no navegador.</p>
+            </div>
+            <button class="botao perigo" data-acao="restaurar-dados" type="button">Restaurar dados</button>
+          </div>
+          <p class="nota">Use esta opção antes de uma demonstração ou depois de testar importações. Os dados importados não são enviados a nenhum servidor.</p>
+        </section>
+      </div>
+    `;
+  }
+
   function renderEmConstrucao(aba) {
     const nome = TITULOS[aba]?.[0] || aba;
     return `<section class="placeholder"><h2>${escapeHtml(nome)}</h2><p>Esta tela será conectada na próxima etapa da implementação.</p></section>`;
@@ -751,6 +887,7 @@ const App = (() => {
     else if (state.aba === "previsao") app.innerHTML = renderPrevisao();
     else if (state.aba === "plano") app.innerHTML = renderPlano();
     else if (state.aba === "fornecedores") app.innerHTML = renderFornecedores();
+    else if (state.aba === "dados") app.innerHTML = renderDados();
     else app.innerHTML = renderEmConstrucao(state.aba);
   }
 
@@ -813,6 +950,7 @@ const App = (() => {
         toast("Matrizes AHP restauradas.");
       }
       if (acao.dataset.acao === "restaurar-dados") {
+        if (!window.confirm("Restaurar os dados de exemplo e limpar o estado salvo?")) return;
         restaurarDados();
         toast("Dados de exemplo restaurados.");
       }
@@ -829,6 +967,37 @@ const App = (() => {
     const app = document.getElementById("app");
     if (app) {
       app.addEventListener("change", (event) => {
+        const importacao = event.target.closest("[data-import]");
+        if (importacao) {
+          const arquivo = importacao.files?.[0];
+          if (!arquivo) return;
+          const tipo = importacao.dataset.import;
+          const leitor = new FileReader();
+          leitor.onload = () => {
+            try {
+              if (tipo === "demanda") {
+                state.dados.DEMANDA = CSV.importarDemanda(String(leitor.result));
+                toast("Demanda importada. Previsão e plano recalculados.");
+              } else if (tipo === "estoque") {
+                const estoque = CSV.importarEstoque(String(leitor.result));
+                for (const produto of state.dados.PRODUTOS) {
+                  if (estoque[produto.id] !== undefined) produto.estoqueKg = estoque[produto.id];
+                }
+                toast("Estoque importado. Plano recalculado.");
+              }
+              calcularTudo();
+              salvar();
+              render();
+            } catch (err) {
+              toast(err.message || "Falha na importação.", true);
+              render();
+            }
+          };
+          leitor.onerror = () => toast("Falha ao ler o arquivo.", true);
+          leitor.readAsText(arquivo, "utf-8");
+          return;
+        }
+
         const matrizInput = event.target.closest("[data-matriz]");
         if (matrizInput) {
           const tipo = matrizInput.dataset.matriz;
