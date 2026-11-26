@@ -149,7 +149,7 @@ Não expandir para CRUD, rastreabilidade, fiscal ou otimização de cortes.
 2. Slide de análise competitiva com o mapa ERP × APS × planilha.
 3. Posicionamento “não substitui o ERP; decide em cima dele” no README e nos slides.
 4. AHP como módulo de compra, com CR por critério e gate sanitário.
-5. Regressão linear, cenários e proveniência dinâmica dos dados.
+5. Regressão linear, cenários e proveniência dinâmica da série de demanda.
 
 **Próximos passos:**
 
