@@ -62,7 +62,7 @@
 - AHP clássico: critérios pareados, autovetor e CR ≤ 10%.
 - Pesos do caso: preço 40%, qualidade 30%, prazo 15%, confiabilidade 15%.
 - Gate sanitário: fornecedor sem GTA é excluído antes do cálculo.
-- Ranking: Boa Vista (37,3%), Uauá (32,0%), Cooperativa (30,7%).
+- Ranking: Boa Vista (37,3%), Uauá (32,0%), Cooperativa (30,8%).
 - “O mais barato não vence: prazo e confiabilidade pesam.”
 
 ## 10. Posicionamento (50 s)

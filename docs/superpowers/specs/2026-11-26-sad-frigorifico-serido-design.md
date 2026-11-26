@@ -119,7 +119,7 @@ Para cada espécie:
 4. Animais = `produção / kg de carcaça por animal`.
 5. Limites: capacidade de abate, capacidade da câmara e estoque mínimo.
 6. Necessidade de compra = animais − estoque de animais vivos (ou = animais).
-7. Margem = receita − (compra + abate + frio).
+7. Margem = receita − (compra + abate). Energia/frio fica como parâmetro futuro.
 
 Se a produção necessária for negativa, o plano é zero e o excedente é
 sinalizado. Se a capacidade for excedida, o plano é cortado no limite e um alerta

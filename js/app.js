@@ -66,15 +66,30 @@ const App = (() => {
       const raw = localStorage.getItem(CHAVE);
       if (!raw) return;
       const salvo = JSON.parse(raw);
-      if (salvo.dados && Array.isArray(salvo.dados.PRODUTOS) && salvo.dados.DEMANDA) {
+      if (salvo.dados && DADOS.dadosValidos(salvo.dados)) {
         state.dados = { ...DADOS.clonarDados(), ...salvo.dados };
+        if (!Array.isArray(state.dados.DEMANDA.semanas)) {
+          state.dados.DEMANDA.semanas = state.dados.DEMANDA.caprino.map((_, i) => i + 1);
+        }
       }
       if (["auto", "mediaMovel", "ses", "regressao"].includes(salvo.metodo)) state.metodo = salvo.metodo;
       if (salvo.parametros) state.parametros = { ...DADOS.PARAMETROS, ...salvo.parametros };
-      if (salvo.cenario) state.cenario = { ...state.cenario, ...salvo.cenario };
-      if (salvo.ahp?.matrizCriterios?.length === 4 &&
-          salvo.ahp?.matrizesAlternativas?.preco?.length === 3) {
+      if (salvo.cenario) {
+        state.cenario = {
+          demandaPct: Number.isFinite(Number(salvo.cenario.demandaPct)) ? Number(salvo.cenario.demandaPct) : 0,
+          precoPct: Number.isFinite(Number(salvo.cenario.precoPct)) ? Number(salvo.cenario.precoPct) : 0,
+          capacidadePct: Number.isFinite(Number(salvo.cenario.capacidadePct)) ? Number(salvo.cenario.capacidadePct) : 0,
+        };
+      }
+      const mAlt = salvo.ahp?.matrizesAlternativas;
+      if (salvo.ahp && DADOS.matrizValida(salvo.ahp.matrizCriterios, 4) &&
+          mAlt && Object.values(mAlt).length === 4 &&
+          Object.values(mAlt).every((M) => DADOS.matrizValida(M, 3))) {
         state.ahp = salvo.ahp;
+      }
+      const semanas = state.dados.DEMANDA.semanas || [];
+      if (semanas.length > 0 && !semanas.includes(state.semanaAtual)) {
+        state.semanaAtual = semanas[semanas.length - 1];
       }
     } catch (_) { /* estado corrompido: usa defaults */ }
   }
@@ -112,19 +127,29 @@ const App = (() => {
     try {
       state.planos = {};
       state.previsoes = {};
+      const semanas = state.dados.DEMANDA.semanas || [];
+      if (semanas.length > 0 && !semanas.includes(state.semanaAtual)) {
+        state.semanaAtual = semanas[semanas.length - 1];
+      }
       for (const produto of state.dados.PRODUTOS) {
         const serie = state.dados.DEMANDA[produto.id] || [];
-        const escolha = metodoEscolhido(serie);
-        const prev4 = Previsao.prever(serie, escolha.metodo, escolha.params, 4);
+        const corte = Previsao.serieAte(serie, semanas, state.semanaAtual);
+        const serieUsada = corte.serie;
+        const semanasUsadas = corte.semanas;
+        const escolha = metodoEscolhido(serieUsada);
+        const prev4 = Previsao.prever(serieUsada, escolha.metodo, escolha.params, 4);
         const seguranca = produto.estoqueSegurancaKgOverride !== undefined
           ? Math.max(0, Number(produto.estoqueSegurancaKgOverride) || 0)
-          : Estoque.estoqueSeguranca(serie, state.parametros.z, state.parametros.leadTimeSemanas);
+          : Estoque.estoqueSeguranca(serieUsada, state.parametros.z, state.parametros.leadTimeSemanas);
         const segurancaArredondada = Math.round(seguranca * 10) / 10;
-        state.previsoes[produto.id] = { escolha, prev4, seguranca: segurancaArredondada, serie };
+        state.previsoes[produto.id] = {
+          escolha, prev4, seguranca: segurancaArredondada,
+          serie: serieUsada, semanas: semanasUsadas,
+        };
         state.planos[produto.id] = Plano.calcularPlano(inputPlano(produto));
       }
       state.consolidado = Plano.consolidar(Object.values(state.planos));
-      state.ahpResultado = Fornecedores.avaliar(state.ahp);
+      state.ahpResultado = Fornecedores.avaliar({ ...state.ahp, alternativas: state.dados.FORNECEDORES });
       state.erroCalculo = null;
     } catch (err) {
       state.erroCalculo = err.message || "Falha no cálculo.";
@@ -167,14 +192,22 @@ const App = (() => {
       { rotulo: "Capacidade utilizada", valor: fmtPct(c.capacidadeUtilizada), sub: `Câmara ${fmtKg(estoqueFinalTotal)} / ${fmtKg(camaraTotal)}`, cor: "gold" },
     ];
 
-    const histCap = (state.dados.DEMANDA.caprino || []).slice(-12);
-    const histOvi = (state.dados.DEMANDA.ovino || []).slice(-12);
+    const origem = state.dados.DEMANDA.origem || "ilustrativa";
+    const serieBadge = origem === "importado"
+      ? `<span class="badge fonte">Dados importados</span>`
+      : `<span class="badge estimativa">Série ilustrativa</span>`;
+    const notaSerie = origem === "importado"
+      ? "Série de demanda importada pelo usuário; confira a consistência dos dados antes de decidir."
+      : "A série de demanda é ilustrativa; importe um CSV na aba Dados para usar dados reais.";
+
+    const histCap = (state.previsoes.caprino?.serie || []).slice(-12);
+    const histOvi = (state.previsoes.ovino?.serie || []).slice(-12);
     const nHist = Math.min(12, histCap.length, histOvi.length);
     const histTotal = histCap.slice(-nHist).map((v, i) => v + histOvi.slice(-nHist)[i]);
     const prevTotal = [0, 1, 2, 3].map((i) =>
       (state.previsoes.caprino?.prev4?.[i] || 0) + (state.previsoes.ovino?.prev4?.[i] || 0));
     const labels = [
-      ...Array.from({ length: nHist }, (_, i) => `S${state.semanaAtual - nHist + 1 + i}`),
+      ...(state.previsoes.caprino?.semanas || []).slice(-nHist).map((w) => `S${w}`),
       ...Array.from({ length: 4 }, (_, i) => `S${state.semanaAtual + 1 + i}`),
     ];
     const series = [
@@ -230,7 +263,7 @@ const App = (() => {
               <h2 id="titulo-demanda">Demanda semanal</h2>
               <p>Últimas ${nHist} semanas e previsão das próximas 4.</p>
             </div>
-            <span class="badge estimativa">Série ilustrativa</span>
+            ${serieBadge}
           </div>
           ${Charts.linha({ series, labels, rotuloY: "kg" })}
         </section>
@@ -283,16 +316,20 @@ const App = (() => {
             </div>
             <span class="badge ${alertas.length ? "alerta" : "ok"}">${alertas.length ? `${alertas.length} alerta(s)` : "Tudo ok"}</span>
           </div>
-          <div class="lista-alertas">${alertasHtml}</div>
+          <div class="lista-alertas" aria-live="polite">${alertasHtml}</div>
         </section>
       </div>
 
-      <p class="nota">Preços e custos usam referências públicas (IBGE/Embrapa) e premissas editáveis. A série de demanda é ilustrativa; importe um CSV na aba Dados para usar dados reais.</p>
+      <p class="nota">Preços e custos usam referências públicas (IBGE/Embrapa) e premissas editáveis. ${notaSerie}</p>
     `;
   }
 
   function renderPrevisao() {
     const produtos = state.dados.PRODUTOS;
+    const origem = state.dados.DEMANDA.origem || "ilustrativa";
+    const serieBadge = origem === "importado"
+      ? `<span class="badge fonte">Dados importados</span>`
+      : `<span class="badge estimativa">Série ilustrativa</span>`;
     const opcoes = [
       ["auto", "Automático (menor MAE)"],
       ["mediaMovel", "Média móvel"],
@@ -320,7 +357,7 @@ const App = (() => {
             <input type="number" data-campo="alfa" min="0.05" max="0.95" step="0.05" value="${Number(state.parametros.alfa) || 0.3}">
           </label>
         </div>
-        <p class="nota">O backtest treina nas primeiras 48 semanas e compara as últimas 4 com o realizado. MAE é o erro médio absoluto em kg; MAPE é o erro percentual médio. A janela e o alfa são usados quando o método correspondente está selecionado.</p>
+        <p class="nota">O backtest treina no histórico disponível e compara as últimas 4 semanas com o realizado. MAE é o erro médio absoluto em kg; MAPE é o erro percentual médio. A janela e o alfa são usados quando o método correspondente está selecionado.</p>
       </section>
     `;
 
@@ -329,8 +366,8 @@ const App = (() => {
       const serie = prev.serie;
       const n = serie.length;
       const labels = [
-        ...serie.map((_, i) => `S${i + 1}`),
-        ...prev.prev4.map((_, i) => `S${n + 1 + i}`),
+        ...(prev.semanas || serie.map((_, i) => i + 1)).map((w) => `S${w}`),
+        ...prev.prev4.map((_, i) => `S${state.semanaAtual + 1 + i}`),
       ];
       const historico = [...serie, null, null, null, null];
       const previsao = n > 0
@@ -348,7 +385,7 @@ const App = (() => {
               <h2 id="prev-${p.id}">${escapeHtml(p.nome)}</h2>
               <p>Histórico de 52 semanas e previsão das próximas 4.</p>
             </div>
-            <span class="badge estimativa">Série ilustrativa</span>
+            ${serieBadge}
           </div>
           ${Charts.linha({
             series: [
@@ -504,7 +541,7 @@ const App = (() => {
           </div>
           <p class="nota">Custo de produção total (inclui o que vai para estoque): ${fmtBRL(plano.custoProducao)} · Valor do estoque final: ${fmtBRL(plano.valorEstoque)}.</p>
 
-          <div class="lista-alertas">${alertas}</div>
+          <div class="lista-alertas" aria-live="polite">${alertas}</div>
         </section>
       `;
     }).join("");
@@ -616,9 +653,11 @@ const App = (() => {
     const excluidos = resultado.excluidos || [];
     const pesos = resultado.criterios?.weights || [];
     const cr = resultado.criterios?.CR || 0;
-    const conformes = Fornecedores.ALTERNATIVAS.filter((a) => a.conformidadeSanitaria);
+    const alternativas = state.dados.FORNECEDORES || Fornecedores.ALTERNATIVAS;
+    const conformes = alternativas.filter((a) => a.conformidadeSanitaria);
     const nomesCrit = Fornecedores.CRITERIOS.map((c) => c.nome);
     const nomesAlt = conformes.map((a) => a.nomeCurto || a.nome);
+    const criteriosAlternativas = resultado.criteriosAlternativas || {};
 
     const pesosItens = Fornecedores.CRITERIOS.map((c, i) => ({ rotulo: c.nome, valor: pesos[i] || 0 }));
     const crBadge = `<span class="badge ${cr <= 0.10 ? "ok" : "alerta"}">CR ${fmtPct(cr)}</span>`;
@@ -628,10 +667,12 @@ const App = (() => {
 
     const alternativasDetalhes = Fornecedores.CRITERIOS.map((c, i) => {
       const M = state.ahp.matrizesAlternativas[c.id];
+      const crAlt = criteriosAlternativas[c.id]?.CR ?? 0;
       return `
         <details class="matriz-detalhe">
-          <summary>${escapeHtml(c.nome)} <span class="badge ${cr <= 0.10 ? "ok" : "premissa"}">peso ${fmtPct(pesos[i] || 0)}</span></summary>
+          <summary>${escapeHtml(c.nome)} <span class="badge ${cr <= 0.10 ? "ok" : "premissa"}">peso ${fmtPct(pesos[i] || 0)}</span> <span class="badge ${crAlt <= 0.10 ? "ok" : "alerta"}">CR ${fmtPct(crAlt)}</span></summary>
           <p class="nota">${escapeHtml(c.descricao)}</p>
+          ${crAlt > 0.10 ? `<div class="alerta capacidade"><strong>Consistência</strong><span>CR de ${fmtPct(crAlt)} acima de 10% neste critério. Revise as comparações.</span></div>` : ""}
           ${M ? matrizTabela(M, nomesAlt, "alternativa", c.id, "Alternativa", `Comparações entre fornecedores — ${c.nome}`) : `<p class="nota">Matriz indisponível.</p>`}
         </details>`;
     }).join("");
@@ -649,6 +690,17 @@ const App = (() => {
     const excluidosHtml = excluidos.length
       ? `<ul class="lista-excluidos">${excluidos.map((a) => `<li><strong>${escapeHtml(a.nome)}</strong> — ${escapeHtml(a.cidade)} · sem conformidade sanitária</li>`).join("")}</ul>`
       : `<p class="nota">Nenhum fornecedor excluído pelo gate sanitário.</p>`;
+
+    const linhasFornecedores = alternativas.map((a) => `
+      <tr>
+        <td><input class="fornecedor-input" type="text" value="${escapeHtml(a.nome)}" data-fornecedor="${a.id}" data-campo-fornecedor="nome" aria-label="Nome do fornecedor ${escapeHtml(a.nome)}"></td>
+        <td><input class="fornecedor-input" type="text" value="${escapeHtml(a.cidade)}" data-fornecedor="${a.id}" data-campo-fornecedor="cidade" aria-label="Cidade do fornecedor ${escapeHtml(a.nome)}"></td>
+        <td class="num"><input class="fornecedor-input" type="number" min="0" step="0.01" value="${Number(a.precoKgVivo) || 0}" data-fornecedor="${a.id}" data-campo-fornecedor="precoKgVivo" aria-label="Preço por kg vivo de ${escapeHtml(a.nome)}"></td>
+        <td class="num"><input class="fornecedor-input" type="number" min="0" max="10" step="0.1" value="${Number(a.qualidade) || 0}" data-fornecedor="${a.id}" data-campo-fornecedor="qualidade" aria-label="Qualidade de ${escapeHtml(a.nome)}"></td>
+        <td class="num"><input class="fornecedor-input" type="number" min="0" step="1" value="${Number(a.prazoDias) || 0}" data-fornecedor="${a.id}" data-campo-fornecedor="prazoDias" aria-label="Prazo em dias de ${escapeHtml(a.nome)}"></td>
+        <td class="num"><input class="fornecedor-input" type="number" min="0" max="10" step="0.1" value="${Number(a.confiabilidade) || 0}" data-fornecedor="${a.id}" data-campo-fornecedor="confiabilidade" aria-label="Confiabilidade de ${escapeHtml(a.nome)}"></td>
+        <td>${a.conformidadeSanitaria ? `<span class="badge ok">Conforme</span>` : `<span class="badge alerta">Excluído</span>`}</td>
+      </tr>`).join("");
 
     return `
       <div class="grid-2">
@@ -697,6 +749,23 @@ const App = (() => {
           <p class="nota">${ranking.length ? `Recomendado: ${escapeHtml(ranking[0].nome)}.` : "Ajuste o cadastro de fornecedores."}</p>
         </section>
 
+        <section class="card span-2" aria-labelledby="titulo-fornecedores-cadastro">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-fornecedores-cadastro">Dados dos fornecedores</h2>
+              <p>Edite nome, cidade, preço, qualidade, prazo e confiabilidade. O gate sanitário é fixo.</p>
+            </div>
+            <span class="badge premissa">Editável</span>
+          </div>
+          <div class="tabela-wrap">
+            <table class="tabela">
+              <caption>As comparações pareadas são julgamentos à parte; ajuste-as para refletir a nova cotação.</caption>
+              <thead><tr><th>Fornecedor</th><th>Cidade</th><th class="num">Preço/kg vivo</th><th class="num">Qualidade</th><th class="num">Prazo (dias)</th><th class="num">Confiabilidade</th><th>Sanidade</th></tr></thead>
+              <tbody>${linhasFornecedores}</tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="card span-2" aria-labelledby="titulo-matriz-criterios">
           <div class="card-head">
             <div>
@@ -736,7 +805,22 @@ const App = (() => {
     const caprino2025 = DADOS.REBANHO.caprino.find((x) => x.ano === 2025)?.valor || 0;
     const ovino2025 = DADOS.REBANHO.ovino.find((x) => x.ano === 2025)?.valor || 0;
     const produtos = state.dados.PRODUTOS;
-    const semanas = state.dados.DEMANDA.caprino?.length || 0;
+    const semanas = state.dados.DEMANDA.semanas || [];
+    const nSemanas = semanas.length || state.dados.DEMANDA.caprino?.length || 0;
+    const primeiraSemana = semanas[0] ?? 1;
+    const ultimaSemana = semanas[semanas.length - 1] ?? nSemanas;
+    const origem = state.dados.DEMANDA.origem || "ilustrativa";
+    const serieStatus = origem === "importado"
+      ? `<span class="badge fonte">Importado</span>`
+      : `<span class="badge estimativa">Estimativa</span>`;
+    const capacidadeTotal = produtos.reduce((s, p) => s + Number(p.capacidadeAbateAnimais || 0), 0);
+    const camaraTotal = produtos.reduce((s, p) => s + Number(p.capacidadeCamaraKg || 0), 0);
+    const coberturas = [...new Set(produtos.map((p) => Number(p.coberturaSemanas) || 0))];
+    const coberturaTxt = coberturas.length === 1
+      ? `${fmtNum(coberturas[0], 1)} semana(s)`
+      : `${coberturas.map((v) => fmtNum(v, 1)).join(" / ")} semanas`;
+    const fornecedores = state.dados.FORNECEDORES || [];
+    const fornecedoresConformes = fornecedores.filter((a) => a.conformidadeSanitaria).length;
 
     const linhasProdutos = produtos.map((p) => `
       <tr>
@@ -765,7 +849,7 @@ const App = (() => {
           </div>
           <div class="tabela-wrap">
             <table class="tabela">
-              <caption>Base atual: ${semanas} semanas de demanda ilustrativa e ${produtos.length} produtos.</caption>
+              <caption>Base atual: ${nSemanas} semanas (S${primeiraSemana}–S${ultimaSemana}) e ${produtos.length} produtos.</caption>
               <thead><tr><th>Fonte</th><th>Uso no SAD</th><th>Dado usado</th><th>Status</th></tr></thead>
               <tbody>
                 <tr>
@@ -787,21 +871,21 @@ const App = (() => {
                   <td><span class="badge fonte">Fonte</span></td>
                 </tr>
                 <tr>
-                  <td><strong>Série de demanda</strong><br><small>Gerada com seed fixa</small></td>
+                  <td><strong>Série de demanda</strong><br><small>${origem === "importado" ? "Importada pelo usuário" : "Gerada com seed fixa"}</small></td>
                   <td>Previsão e plano</td>
-                  <td>${semanas} semanas; ~60 caprinos + 60 ovinos/semana; sazonalidade de junho/dezembro</td>
-                  <td><span class="badge estimativa">Estimativa</span></td>
+                  <td>${nSemanas} semanas (S${primeiraSemana}–S${ultimaSemana}); ${origem === "importado" ? "dados do usuário" : "~60 caprinos + 60 ovinos/semana; sazonalidade de junho/dezembro"}</td>
+                  <td>${serieStatus}</td>
                 </tr>
                 <tr>
-                  <td><strong>Fornecedores</strong><br><small>Personas ilustrativas</small></td>
+                  <td><strong>Fornecedores</strong><br><small>Editáveis na aba Fornecedores</small></td>
                   <td>Ranking AHP</td>
-                  <td>3 conformes + 1 excluído por falta de GTA</td>
-                  <td><span class="badge estimativa">Estimativa</span></td>
+                  <td>${fornecedoresConformes} conformes + ${fornecedores.length - fornecedoresConformes} excluído(s) por falta de GTA</td>
+                  <td><span class="badge premissa">Editável</span></td>
                 </tr>
                 <tr>
                   <td><strong>Parâmetros do plano</strong><br><small>Editáveis na aba Plano</small></td>
                   <td>Capacidade, cobertura, preços e custos</td>
-                  <td>Capacidade 180 animais/semana; câmara 6.000 kg; cobertura 1 semana</td>
+                  <td>Capacidade ${fmtNum(capacidadeTotal)} animais/semana; câmara ${fmtKg(camaraTotal)}; cobertura ${coberturaTxt}</td>
                   <td><span class="badge premissa">Premissa</span></td>
                 </tr>
               </tbody>
@@ -836,7 +920,7 @@ const App = (() => {
           <div class="import-grid">
             <div class="import-card">
               <h3>Demanda semanal</h3>
-              <p class="nota">Colunas: <code>semana;caprino;ovino</code>. Use ponto e vírgula e uma linha por semana.</p>
+              <p class="nota">Colunas: <code>semana;caprino;ovino</code>. Use ponto e vírgula, uma linha por semana. As semanas são ordenadas automaticamente.</p>
               <input type="file" accept=".csv,text/csv" data-import="demanda" aria-label="Importar CSV de demanda">
               <pre class="exemplo-csv">semana;caprino;ovino
 1;700;900
@@ -909,10 +993,12 @@ ovino;800</pre>
   function preencherSemanas() {
     const sel = document.getElementById("semana");
     if (!sel) return;
-    const opcoes = [];
-    for (let w = 40; w <= 52; w++) opcoes.push(`<option value="${w}" ${w === state.semanaAtual ? "selected" : ""}>S${w}</option>`);
-    opcoes.push(`<option value="53" ${state.semanaAtual === 53 ? "selected" : ""}>S53 (próxima)</option>`);
-    sel.innerHTML = opcoes.join("");
+    const semanas = state.dados.DEMANDA.semanas || [];
+    if (semanas.length === 0) return;
+    if (!semanas.includes(state.semanaAtual)) state.semanaAtual = semanas[semanas.length - 1];
+    sel.innerHTML = semanas
+      .map((w) => `<option value="${w}" ${w === state.semanaAtual ? "selected" : ""}>S${w}</option>`)
+      .join("");
   }
 
   function restaurarDados() {
@@ -921,7 +1007,9 @@ ovino;800</pre>
     state.parametros = { ...DADOS.PARAMETROS };
     state.cenario = { demandaPct: 0, precoPct: 0, capacidadePct: 0 };
     state.ahp = Fornecedores.restaurarExemplo();
+    state.semanaAtual = 52;
     try { localStorage.removeItem(CHAVE); } catch (_) {}
+    preencherSemanas();
     calcularTudo();
     render();
   }
@@ -940,7 +1028,7 @@ ovino;800</pre>
         calcularTudo();
         salvar();
         render();
-        toast("Plano recalculado com os parâmetros atuais.");
+        if (!state.erroCalculo) toast("Plano recalculado com os parâmetros atuais.");
       }
       if (acao.dataset.acao === "restaurar-parametros") {
         for (const padrao of DADOS.PRODUTOS) {
@@ -955,26 +1043,28 @@ ovino;800</pre>
         calcularTudo();
         salvar();
         render();
-        toast("Parâmetros do plano restaurados.");
+        if (!state.erroCalculo) toast("Parâmetros do plano restaurados.");
       }
       if (acao.dataset.acao === "restaurar-ahp") {
         state.ahp = Fornecedores.restaurarExemplo();
         calcularTudo();
         salvar();
         render();
-        toast("Matrizes AHP restauradas.");
+        if (!state.erroCalculo) toast("Matrizes AHP restauradas.");
       }
       if (acao.dataset.acao === "restaurar-dados") {
         if (!window.confirm("Restaurar os dados de exemplo e limpar o estado salvo?")) return;
         restaurarDados();
-        toast("Dados de exemplo restaurados.");
+        if (!state.erroCalculo) toast("Dados de exemplo restaurados.");
       }
     });
 
     const semana = document.getElementById("semana");
     if (semana) {
       semana.addEventListener("change", (event) => {
-        state.semanaAtual = Number(event.target.value) || 52;
+        state.semanaAtual = Number(event.target.value) || state.semanaAtual;
+        calcularTudo();
+        salvar();
         render();
       });
     }
@@ -991,13 +1081,12 @@ ovino;800</pre>
           leitor.onload = () => {
             try {
               if (tipo === "demanda") {
-                state.dados.DEMANDA = CSV.importarDemanda(String(leitor.result));
-                toast("Demanda importada. Previsão e plano recalculados.");
+                state.dados = Importacao.aplicarDemanda(state.dados, String(leitor.result));
+                state.semanaAtual = state.dados.DEMANDA.semanas[state.dados.DEMANDA.semanas.length - 1];
+                preencherSemanas();
+                toast(`Demanda importada. Semana de referência: S${state.semanaAtual}.`);
               } else if (tipo === "estoque") {
-                const estoque = CSV.importarEstoque(String(leitor.result));
-                for (const produto of state.dados.PRODUTOS) {
-                  if (estoque[produto.id] !== undefined) produto.estoqueKg = estoque[produto.id];
-                }
+                state.dados = Importacao.aplicarEstoque(state.dados, String(leitor.result));
                 toast("Estoque importado. Plano recalculado.");
               }
               calcularTudo();
@@ -1010,6 +1099,24 @@ ovino;800</pre>
           };
           leitor.onerror = () => toast("Falha ao ler o arquivo.", true);
           leitor.readAsText(arquivo, "utf-8");
+          return;
+        }
+
+        const fornecedorInput = event.target.closest("[data-fornecedor]");
+        if (fornecedorInput) {
+          const alt = (state.dados.FORNECEDORES || []).find((a) => a.id === fornecedorInput.dataset.fornecedor);
+          if (!alt) return;
+          const campo = fornecedorInput.dataset.campoFornecedor;
+          if (campo === "nome" || campo === "cidade") {
+            alt[campo] = fornecedorInput.value.trim() || alt[campo];
+          } else {
+            const valor = Number(fornecedorInput.value);
+            if (!Number.isFinite(valor) || valor < 0) { render(); return; }
+            alt[campo] = valor;
+          }
+          calcularTudo();
+          salvar();
+          render();
           return;
         }
 

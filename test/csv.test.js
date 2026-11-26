@@ -12,8 +12,21 @@ test("parse aceita vírgula e aspas", () => {
 
 test("importarDemanda lê caprino e ovino", () => {
   const r = CSV.importarDemanda("semana;caprino;ovino\n1;700;900\n2;710;910");
+  assert.deepEqual(r.semanas, [1, 2]);
   assert.deepEqual(r.caprino, [700, 710]);
   assert.deepEqual(r.ovino, [900, 910]);
+  assert.equal(r.origem, "importado");
+});
+
+test("importarDemanda ordena semanas fora de ordem", () => {
+  const r = CSV.importarDemanda("semana;caprino;ovino\n2;710;910\n1;700;900");
+  assert.deepEqual(r.semanas, [1, 2]);
+  assert.deepEqual(r.caprino, [700, 710]);
+});
+
+test("importarDemanda rejeita semana inválida ou duplicada", () => {
+  assert.throws(() => CSV.importarDemanda("semana;caprino;ovino\nx;700;900"));
+  assert.throws(() => CSV.importarDemanda("semana;caprino;ovino\n1;700;900\n1;710;910"));
 });
 
 test("importarEstoque lê o estoque atual", () => {

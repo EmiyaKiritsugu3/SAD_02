@@ -33,3 +33,25 @@ test("produtos têm os campos usados pelo plano", () => {
     assert.ok(p.custoAbateKg >= 0);
   }
 });
+
+test("demanda padrão tem semanas 1..52 e origem ilustrativa", () => {
+  assert.equal(DADOS.DEMANDA.semanas.length, 52);
+  assert.equal(DADOS.DEMANDA.semanas[0], 1);
+  assert.equal(DADOS.DEMANDA.semanas[51], 52);
+  assert.equal(DADOS.DEMANDA.origem, "ilustrativa");
+});
+
+test("dadosValidos aceita o pacote padrão e rejeita formas vazias", () => {
+  assert.equal(DADOS.dadosValidos(DADOS.clonarDados()), true);
+  assert.equal(DADOS.dadosValidos({ PRODUTOS: [], DEMANDA: {} }), false);
+  assert.equal(DADOS.dadosValidos({ PRODUTOS: DADOS.PRODUTOS, DEMANDA: { caprino: [1], ovino: [] } }), false);
+  const ruim = DADOS.clonarDados();
+  ruim.DEMANDA.caprino[0] = NaN;
+  assert.equal(DADOS.dadosValidos(ruim), false);
+});
+
+test("matrizValida aceita matriz 2x2 e rejeita dimensão/valor inválido", () => {
+  assert.equal(DADOS.matrizValida([[1, 2], [1 / 2, 1]], 2), true);
+  assert.equal(DADOS.matrizValida([[1, 2]], 2), false);
+  assert.equal(DADOS.matrizValida([[1, "x"], [1 / 2, 1]], 2), false);
+});

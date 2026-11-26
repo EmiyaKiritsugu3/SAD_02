@@ -32,3 +32,23 @@ test("CR alto gera alerta, mas não quebra", () => {
   assert.ok(r.alertas.some(a => a.tipo === "consistencia"));
   assert.equal(r.ranking.length, 3);
 });
+
+test("CR alto em matriz de alternativa gera alerta", () => {
+  const mAlt = {
+    ...F.MATRIZES_ALTERNATIVAS,
+    preco: [[1, 9, 1 / 9], [1 / 9, 1, 9], [9, 1 / 9, 1]],
+  };
+  const r = F.avaliar({ matrizCriterios: F.MATRIZ_CRITERIOS, matrizesAlternativas: mAlt, alternativas: F.ALTERNATIVAS });
+  assert.ok(r.criteriosAlternativas.preco.CR > 0.1);
+  assert.ok(r.alertas.some(a => a.tipo === "consistencia-alternativa"));
+});
+
+test("avaliar usa as alternativas fornecidas", () => {
+  const alts = F.ALTERNATIVAS.map((a) => a.id === "boa-vista"
+    ? { ...a, nome: "Boa Vista Editada", precoKgVivo: 99 }
+    : a);
+  const r = F.avaliar({ matrizCriterios: F.MATRIZ_CRITERIOS, matrizesAlternativas: F.MATRIZES_ALTERNATIVAS, alternativas: alts });
+  const boa = r.ranking.find((a) => a.id === "boa-vista");
+  assert.equal(boa.nome, "Boa Vista Editada");
+  assert.equal(boa.precoKgVivo, 99);
+});

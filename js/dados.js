@@ -99,9 +99,30 @@ const DADOS = (() => {
   }
 
   const DEMANDA = {
+    semanas: Array.from({ length: 52 }, (_, i) => i + 1),
     caprino: gerarSerieDemanda({ base: 700, seed: 42 }),
     ovino: gerarSerieDemanda({ base: 900, seed: 43 }),
+    origem: "ilustrativa",
   };
+
+  function matrizValida(M, n) {
+    return Array.isArray(M) && M.length === n &&
+      M.every((linha) => Array.isArray(linha) && linha.length === n &&
+        linha.every((v) => Number.isFinite(v) && v > 0));
+  }
+
+  function dadosValidos(d) {
+    if (!d || !Array.isArray(d.PRODUTOS) || d.PRODUTOS.length === 0) return false;
+    if (!d.PRODUTOS.every((p) => p && typeof p.id === "string" &&
+      Number.isFinite(Number(p.estoqueKg)) && Number.isFinite(Number(p.precoVendaKg)))) return false;
+    if (!d.DEMANDA || !Array.isArray(d.DEMANDA.caprino) || !Array.isArray(d.DEMANDA.ovino)) return false;
+    const n = d.DEMANDA.caprino.length;
+    if (n === 0 || d.DEMANDA.ovino.length !== n) return false;
+    if (!d.DEMANDA.caprino.every((v) => Number.isFinite(v) && v >= 0)) return false;
+    if (!d.DEMANDA.ovino.every((v) => Number.isFinite(v) && v >= 0)) return false;
+    if (d.DEMANDA.semanas && (!Array.isArray(d.DEMANDA.semanas) || d.DEMANDA.semanas.length !== n)) return false;
+    return true;
+  }
 
   function clonarDados() {
     return JSON.parse(JSON.stringify({
@@ -111,7 +132,7 @@ const DADOS = (() => {
 
   return {
     EMPRESA, REBANHO, PRECOS, PRODUTOS, DEMANDA, FORNECEDORES, PARAMETROS,
-    gerarSerieDemanda, clonarDados,
+    gerarSerieDemanda, clonarDados, dadosValidos, matrizValida,
   };
 })();
 

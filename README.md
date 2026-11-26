@@ -52,6 +52,8 @@ Abra:
 - Slides interativos: <http://localhost:8000/slides.html>
 - Slides em PDF: `slides.pdf`
 
+O `slides.pdf` é gerado a partir do deck renderizado (imagens), preservando o layout; o `slides.html` é a versão interativa e acessível.
+
 Atalhos dos slides: `→`/espaço avançam; `←` voltam; `F` tela cheia; `N` notas do apresentador.
 
 ## Testes
@@ -60,7 +62,7 @@ Atalhos dos slides: `→`/espaço avançam; `←` voltam; `F` tela cheia; `N` no
 npm test
 ```
 
-A suíte usa `node:test` e cobre o motor AHP, previsão, estoque, plano, fornecedores e CSV. Estado atual: **38 testes passando**.
+A suíte usa `node:test` e cobre o motor AHP, previsão, estoque, plano, fornecedores e CSV. Estado atual: **51 testes passando**.
 
 ## Dados e premissas
 
@@ -94,6 +96,7 @@ SAD_02/
 │   ├── plano.js
 │   ├── fornecedores.js
 │   ├── csv.js
+│   ├── importacao.js
 │   ├── charts.js
 │   └── app.js
 ├── test/

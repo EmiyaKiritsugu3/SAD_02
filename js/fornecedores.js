@@ -62,9 +62,19 @@ const Fornecedores = (() => {
     const excluidos = lista.filter((a) => a.conformidadeSanitaria !== true);
     const criterios = Motor.calcAHP(mCrit) || { weights: [], CR: 0 };
     const pesosPorCriterio = {};
+    const criteriosAlternativas = {};
+    const alertas = [];
     for (const c of CRITERIOS) {
       const M = mAlt[c.id];
-      pesosPorCriterio[c.id] = M ? (Motor.calcAHP(M)?.weights || []) : [];
+      const res = M ? Motor.calcAHP(M) : null;
+      pesosPorCriterio[c.id] = res?.weights || [];
+      criteriosAlternativas[c.id] = res;
+      if (res && res.CR > 0.10) {
+        alertas.push({
+          tipo: "consistencia-alternativa",
+          mensagem: `CR de ${(res.CR * 100).toFixed(1)}% no critério ${c.nome} acima de 10%. Revise as comparações entre fornecedores.`,
+        });
+      }
     }
 
     const nCrit = Math.min(criterios.weights.length, CRITERIOS.length);
@@ -81,7 +91,6 @@ const Fornecedores = (() => {
       .sort((a, b) => b.score - a.score)
       .map((a, i) => ({ ...a, rank: i + 1 }));
 
-    const alertas = [];
     if (criterios.CR > 0.10) {
       alertas.push({
         tipo: "consistencia",
@@ -95,7 +104,7 @@ const Fornecedores = (() => {
       });
     }
 
-    return { criterios, alternativas: pontuados, ranking, excluidos, alertas };
+    return { criterios, criteriosAlternativas, alternativas: pontuados, ranking, excluidos, alertas };
   }
 
   return {

@@ -58,18 +58,28 @@ const CSV = (() => {
     const iOvino = head.indexOf("ovino");
     if (iSemana < 0 || iCaprino < 0 || iOvino < 0) throw new Error("CSV de demanda inválido");
 
-    const caprino = [], ovino = [];
+    const registros = [];
+    const vistas = new Set();
     for (const linha of linhas.slice(1)) {
-      const c = numero(linha[iCaprino]);
-      const o = numero(linha[iOvino]);
-      if (!Number.isFinite(c) || !Number.isFinite(o) || c < 0 || o < 0) {
+      const semana = numero(linha[iSemana]);
+      const caprino = numero(linha[iCaprino]);
+      const ovino = numero(linha[iOvino]);
+      if (!Number.isInteger(semana) || semana <= 0 ||
+          !Number.isFinite(caprino) || !Number.isFinite(ovino) || caprino < 0 || ovino < 0 ||
+          vistas.has(semana)) {
         throw new Error("CSV de demanda inválido");
       }
-      caprino.push(c);
-      ovino.push(o);
+      vistas.add(semana);
+      registros.push({ semana, caprino, ovino });
     }
-    if (caprino.length === 0) throw new Error("CSV de demanda inválido");
-    return { caprino, ovino };
+    if (registros.length === 0) throw new Error("CSV de demanda inválido");
+    registros.sort((a, b) => a.semana - b.semana);
+    return {
+      semanas: registros.map((r) => r.semana),
+      caprino: registros.map((r) => r.caprino),
+      ovino: registros.map((r) => r.ovino),
+      origem: "importado",
+    };
   }
 
   function importarEstoque(texto) {

@@ -30,6 +30,11 @@ test("capacidade limita o abate e gera ruptura", () => {
   assert.ok(r.alertas.some(a => a.tipo === "ruptura"));
 });
 
+test("capacidade fracionária é arredondada para baixo", () => {
+  const r = Plano.calcularPlano({ ...base, previsaoSemana: 2000, estoqueAtualKg: 0, estoqueSegurancaKg: 0, capacidadeAbateAnimais: 90.5 });
+  assert.equal(r.animaisAbatidos, 90);
+});
+
 test("câmara fria limita a produção", () => {
   const r = Plano.calcularPlano({ ...base, previsaoSemana: 700, estoqueAtualKg: 500, coberturaSemanas: 3, capacidadeAbateAnimais: 200, capacidadeCamaraKg: 2100 });
   assert.ok(r.animaisAbatidos < r.animaisNecessarios);
@@ -43,6 +48,7 @@ test("demanda zero retorna zeros, não negativos", () => {
   assert.equal(r.producaoKg, 0);
   assert.equal(r.margem, 0);
   assert.equal(r.necessidadeCompraAnimais, 0);
+  assert.ok(r.alertas.some(a => a.tipo === "demanda-zero"));
 });
 
 test("estoque negativo é tratado como zero", () => {

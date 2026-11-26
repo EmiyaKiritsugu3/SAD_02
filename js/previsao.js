@@ -90,9 +90,19 @@ const Previsao = (() => {
     return melhor;
   }
 
+  function serieAte(serie, semanas, semanaRef) {
+    const valores = Array.isArray(serie) ? serie : [];
+    const sem = Array.isArray(semanas) && semanas.length === valores.length
+      ? semanas
+      : valores.map((_, i) => i + 1);
+    const indice = sem.indexOf(Number(semanaRef));
+    const corte = indice >= 0 ? indice + 1 : sem.length;
+    return { serie: valores.slice(0, corte), semanas: sem.slice(0, corte) };
+  }
+
   return {
     mediaMovel, suavizacaoExponencial, regressaoLinear, prever,
-    mae, mape, backtest, escolherMelhor,
+    mae, mape, backtest, escolherMelhor, serieAte,
   };
 })();
 

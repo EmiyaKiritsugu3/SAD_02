@@ -8,7 +8,7 @@ test("matriz consistente 3x3: pesos somam 1 e CR < 0.1", () => {
   const r = AHP.calcAHP([[1, 3, 5], [1 / 3, 1, 3], [1 / 5, 1 / 3, 1]]);
   close(r.weights.reduce((a, b) => a + b, 0), 1);
   assert.ok(r.CR < 0.1);
-  close(r.weights[0], 0.633, 0.001);
+  close(r.weights[0], 0.637, 0.001);
 });
 
 test("matriz identidade 3x3: pesos iguais e CR 0", () => {

@@ -1,7 +1,7 @@
 # Fontes e premissas — SeridóFrigo
 
 **Atualizado em:** 2026-11-26
-**Status:** versão inicial; será completada na validação final.
+**Status:** versão final do MVP.
 
 ## 1. Fontes públicas
 
@@ -68,7 +68,9 @@ Na aba **Dados e premissas**, importe:
   ovino;800
   ```
 
-O arquivo é processado no navegador; nada é enviado a servidor. Em caso de erro, os dados anteriores são mantidos.
+O arquivo é processado no navegador; nada é enviado a servidor. Em caso de erro, os dados anteriores são mantidos. As semanas são ordenadas automaticamente e não podem se repetir.
+
+**Formato numérico:** use ponto decimal (`12.5`) ou vírgula decimal quando o delimitador for ponto e vírgula (`12,5`). Evite separador de milhar: `1.200` é lido como 1,2.
 
 ## 5. Limitações
 
@@ -79,7 +81,7 @@ O arquivo é processado no navegador; nada é enviado a servidor. Em caso de err
 
 ## 6. Validação
 
-- **2026-11-26:** 38 testes automatizados passando (`npm test`).
+- **2026-11-26:** 51 testes automatizados passando (`npm test`).
 - Aplicação verificada no navegador em 360 px, 768 px e 1366 px, sem erros de
   console e sem overflow horizontal.
 - Importação CSV testada com arquivo válido e inválido; o inválido não altera o

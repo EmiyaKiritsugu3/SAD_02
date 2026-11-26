@@ -38,3 +38,15 @@ test("escolherMelhor prefere regressão em série linear", () => {
   const r = P.escolherMelhor([10, 20, 30, 40, 50, 60]);
   assert.equal(r.metodo, "regressao");
 });
+
+test("serieAte corta até a semana de referência", () => {
+  const r = P.serieAte([10, 20, 30, 40], [40, 41, 42, 43], 41);
+  assert.deepEqual(r.serie, [10, 20]);
+  assert.deepEqual(r.semanas, [40, 41]);
+});
+
+test("serieAte com referência inexistente usa a série completa", () => {
+  const r = P.serieAte([10, 20, 30], [1, 2, 3], 99);
+  assert.deepEqual(r.serie, [10, 20, 30]);
+  assert.deepEqual(r.semanas, [1, 2, 3]);
+});

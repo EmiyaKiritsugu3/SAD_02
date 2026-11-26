@@ -28,7 +28,7 @@ const Plano = (() => {
     const animaisNecessarios = producaoNecessariaKg / kgAnimal;
     const animaisDesejados = Math.ceil(animaisNecessarios);
     const animaisMaxCamara = Math.max(0, Math.floor((capacidadeCamaraKg - estoqueAtualKg + previsaoSemana) / kgAnimal));
-    const animaisAbatidos = Math.max(0, Math.min(animaisDesejados, capacidadeAbateAnimais, animaisMaxCamara));
+    const animaisAbatidos = Math.floor(Math.max(0, Math.min(animaisDesejados, capacidadeAbateAnimais, animaisMaxCamara)));
     const producaoKg = arred(animaisAbatidos * kgAnimal);
     const disponivelKg = arred(estoqueAtualKg + producaoKg);
     const demandaAtendidaKg = Math.min(previsaoSemana, disponivelKg);
@@ -73,6 +73,12 @@ const Plano = (() => {
       alertas.push({
         tipo: "estoque-excedente",
         mensagem: `Estoque final acima da capacidade da câmara: ${estoqueFinalKg} kg (capacidade ${capacidadeCamaraKg} kg).`,
+      });
+    }
+    if (previsaoSemana === 0 && estoqueFinalKg > estoqueMinKg) {
+      alertas.push({
+        tipo: "demanda-zero",
+        mensagem: `Demanda zero: ${estoqueFinalKg} kg em estoque sem previsão de saída.`,
       });
     }
 

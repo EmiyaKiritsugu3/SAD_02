@@ -388,6 +388,7 @@ select:hover, input:hover { border-color: var(--gold); }
 .alerta.capacidade, .alerta.ruptura { border-left-color: var(--danger); background: rgba(163, 58, 46, 0.08); }
 .alerta.camara, .alerta.estoque-excedente { border-left-color: var(--gold); }
 .alerta.estoque-minimo { border-left-color: var(--terracotta); background: rgba(181, 82, 47, 0.08); }
+.alerta.demanda-zero { border-left-color: var(--terracotta); background: rgba(181, 82, 47, 0.08); }
 .alerta.ok { border-left-color: var(--ok); background: rgba(79, 107, 69, 0.08); }
 
 /* ---------- Supplier ranking ---------- */
@@ -487,6 +488,12 @@ input.matriz-input {
 .matriz-reciproca { text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tabela.matriz th { font-size: 0.65rem; }
 .tabela.matriz td { padding: 6px; }
+.tabela input.fornecedor-input {
+  width: 100%;
+  min-width: 72px;
+  min-height: 36px;
+  padding: 4px 7px;
+}
 
 .badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .import-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
