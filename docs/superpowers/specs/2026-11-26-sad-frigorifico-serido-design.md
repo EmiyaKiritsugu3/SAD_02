@@ -34,6 +34,12 @@ fornecedor recomendado.
 
 ## 3. Escopo
 
+**Posicionamento (auditoria de mercado):** o SeridóFrigo **não é um ERP** nem um
+APS enterprise. É uma **camada de decisão semanal** para pequenos frigoríficos
+que hoje usam planilha ou um ERP básico. Importa dados (CSV/JSON) e entrega
+previsão, plano, cenários e ranking de fornecedores. A análise completa está em
+`docs/auditoria-mercado.md`.
+
 **Dentro do MVP:**
 
 - Dashboard com estoque, previsão, plano, capacidade, margem e alertas.
@@ -50,14 +56,18 @@ fornecedor recomendado.
 - Cenários de sensibilidade: demanda, preço de venda e capacidade.
 - Página de dados e premissas com fontes públicas, avisos e distinção entre
   dado observado e estimativa.
+- Importação CSV de demanda e estoque (camada de decisão sobre dados existentes).
+- Slide de análise competitiva (ERP × APS × planilha).
 - Testes com `node:test`.
 - Slides de apresentação.
 
 **Fora do MVP (trabalhos futuros):**
 
-- Programação linear/Simplex, Data Warehouse/OLAP, mineração de dados completa,
-  sistema especialista, CRUD completo de estoque, autenticação, backend, banco
-  de dados, integração ao vivo com APIs e dados reais do frigorífico.
+- Rastreabilidade SIF/MAPA, NF-e, balanças, etiquetas, WMS, controle fiscal,
+  otimização de cortes/carcaça, programação linear/Simplex, Data Warehouse/OLAP,
+  mineração de dados completa, sistema especialista, CRUD completo de estoque,
+  autenticação, backend, banco de dados, integração ao vivo com APIs e dados
+  reais do frigorífico.
 - Esses itens aparecem nos slides como limitações e evolução.
 
 ## 4. Dados e premissas
@@ -154,6 +164,7 @@ SAD_02/
 │   ├── estoque.js        # segurança, ponto de pedido, cobertura, ABC
 │   ├── plano.js          # plano semanal e cenários
 │   ├── fornecedores.js   # modelo AHP do domínio
+│   ├── csv.js            # importação simples de demanda/estoque
 │   └── app.js            # UI, gráficos, localStorage
 ├── test/
 │   ├── ahp.test.js
@@ -162,6 +173,7 @@ SAD_02/
 │   └── plano.test.js
 ├── docs/
 │   ├── contexto-e-decisoes.md
+│   ├── auditoria-mercado.md
 │   ├── fontes-e-premissas.md
 │   └── superpowers/specs/2026-11-26-sad-frigorifico-serido-design.md
 ├── package.json
@@ -186,9 +198,9 @@ SAD_02/
 
 1. Aplicação funcionando localmente (`index.html` ou
    `python3 -m http.server`).
-2. Slides (`slides.html` + PDF).
+2. Slides (`slides.html` + PDF), incluindo análise competitiva.
 3. README com instruções, fontes e premissas.
-4. Spec e documentação de apoio.
+4. Spec, auditoria de mercado e documentação de apoio.
 
 ## 10. Cronograma de uma semana
 
@@ -198,25 +210,28 @@ SAD_02/
 | 27/11 (sex) | Lógica de previsão, estoque e plano + testes |
 | 28/11 (sáb) | Dashboard e tela de previsão |
 | 29/11 (dom) | Tela de plano, cenários e AHP de fornecedores |
-| 30/11 (seg) | Página de dados, polimento e integração |
-| 01/12 (ter) | Slides, screenshots e README |
+| 30/11 (seg) | Página de dados, importação CSV, polimento e integração |
+| 01/12 (ter) | Slides (incluindo análise competitiva), screenshots e README |
 | 02/12 (qua) | Buffer, testes finais e ensaio |
 | 03/12 (qui) | Entrega/apresentação |
 
 ## 11. Riscos e cortes
 
-- **Tempo curto:** cortar importação CSV, ABC e regressão; manter dashboard,
-  previsão, plano e AHP.
+- **Tempo curto:** cortar ABC e regressão; a importação CSV é must-have simples e
+  não deve ser cortada. Manter dashboard, previsão, plano e AHP.
 - **Editor AHP complexo:** usar matrizes pré-preenchidas + sliders; o cálculo e
   o ranking continuam demonstráveis.
 - **Dados públicos insuficientes:** manter a base ilustrativa rotulada e as
   fontes na página de dados.
-- **Pedido de artigo:** usar a spec e os slides como base e expandir depois.
+- **Pedido de artigo:** usar a spec, a auditoria e os slides como base e expandir
+  depois.
 
 ## 12. Critérios de sucesso
 
 - O gestor vê, em uma tela, a decisão da semana e o fornecedor recomendado.
 - O sistema explica de onde vêm os números (fórmulas e fontes).
+- O posicionamento fica claro: camada de decisão complementar ao ERP/planilha,
+  não um ERP.
 - O professor reconhece um SAD específico, com usuário, decisão, dados, modelos,
   conhecimento e interface.
 - `npm test` verde; demonstração sem erros.
