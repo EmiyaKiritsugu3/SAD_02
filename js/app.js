@@ -18,6 +18,7 @@ const App = (() => {
     },
     ahpResultado: null,
     cenario: { demandaPct: 0, precoPct: 0, capacidadePct: 0 },
+    planoAvancado: false,
     erroCalculo: null,
     mensagem: null,
   };
@@ -56,6 +57,7 @@ const App = (() => {
         metodo: state.metodo,
         parametros: state.parametros,
         cenario: state.cenario,
+        planoAvancado: state.planoAvancado,
         ahp: state.ahp,
       }));
     } catch (_) { /* localStorage indisponível */ }
@@ -81,6 +83,7 @@ const App = (() => {
           capacidadePct: Number.isFinite(Number(salvo.cenario.capacidadePct)) ? Number(salvo.cenario.capacidadePct) : 0,
         };
       }
+      if (typeof salvo.planoAvancado === "boolean") state.planoAvancado = salvo.planoAvancado;
       const mAlt = salvo.ahp?.matrizesAlternativas;
       if (salvo.ahp && DADOS.matrizValida(salvo.ahp.matrizCriterios, 4) &&
           mAlt && Object.values(mAlt).length === 4 &&
@@ -164,6 +167,17 @@ const App = (() => {
       ses: "Suavização exponencial",
       regressao: "Regressão linear",
     }[m] || m;
+  }
+
+  function alertaPrincipal(planos) {
+    const capacidadeTotal = planos.reduce((s, p) => s + p.capacidadeAbateAnimais, 0);
+    const desejadosTotal = planos.reduce((s, p) => s + p.animaisDesejados, 0);
+    const excesso = Math.max(0, desejadosTotal - capacidadeTotal);
+    if (excesso > 0.001) {
+      return `Capacidade total insuficiente: ${Math.ceil(excesso)} animais acima do limite.`;
+    }
+    const primeiro = planos.flatMap((p) => p.alertas)[0];
+    return primeiro ? primeiro.mensagem : "Sem alertas";
   }
 
   function renderPainel() {
@@ -555,29 +569,124 @@ const App = (() => {
       </label>`;
 
     const cenarios = [
-      { nome: "Pessimista", cenario: { demandaPct: -0.10, precoPct: -0.05, capacidadePct: -0.10 } },
-      { nome: "Base", cenario: { demandaPct: 0, precoPct: 0, capacidadePct: 0 } },
-      { nome: "Otimista", cenario: { demandaPct: 0.10, precoPct: 0.05, capacidadePct: 0.10 } },
-      { nome: "Cenário atual", cenario: state.cenario },
+      { nome: "Cenário conservador", cenario: { demandaPct: -0.10, precoPct: -0.05, capacidadePct: -0.10 } },
+      { nome: "Cenário base", cenario: { demandaPct: 0, precoPct: 0, capacidadePct: 0 } },
+      { nome: "Cenário otimista", cenario: { demandaPct: 0.10, precoPct: 0.05, capacidadePct: 0.10 } },
+      { nome: "Seu cenário", cenario: state.cenario },
     ];
 
     const linhasCenarios = cenarios.map(({ nome, cenario }) => {
       const planos = produtos.map((p) => Plano.simularCenario(inputPlano(p), cenario));
       const total = Plano.consolidar(planos);
-      const capacidadeTotal = planos.reduce((s, p) => s + p.capacidadeAbateAnimais, 0);
-      const desejadosTotal = planos.reduce((s, p) => s + p.animaisDesejados, 0);
-      const excessoCapacidade = Math.max(0, desejadosTotal - capacidadeTotal);
-      const alerta = excessoCapacidade > 0.001
-        ? { mensagem: `Capacidade total insuficiente: ${Math.ceil(excessoCapacidade)} animais acima do limite.` }
-        : planos.flatMap((p) => p.alertas)[0];
       return `
         <tr>
           <td><strong>${escapeHtml(nome)}</strong></td>
           <td class="num">${fmtNum(total.animaisAbatidos)}</td>
           <td class="num">${fmtBRL(total.margem)}</td>
-          <td>${alerta ? escapeHtml(alerta.mensagem) : "Sem alertas"}</td>
+          <td>${escapeHtml(alertaPrincipal(planos))}</td>
         </tr>`;
     }).join("");
+
+    const tabelaCenarios = `
+      <div class="tabela-wrap">
+        <table class="tabela">
+          <caption>Se a semana for... Valores consolidados de caprino + ovino.</caption>
+          <thead><tr><th>Cenário</th><th class="num">Animais a abater</th><th class="num">Margem</th><th>Alerta principal</th></tr></thead>
+          <tbody>${linhasCenarios}</tbody>
+        </table>
+      </div>`;
+
+    const planosAtual = produtos.map((p) => Plano.simularCenario(inputPlano(p), state.cenario));
+    const totalAtual = Plano.consolidar(planosAtual);
+    const estoqueFinalAtual = planosAtual.reduce((s, p) => s + p.estoqueFinalKg, 0);
+    const caprinosAtual = planosAtual.find((p) => p.produtoId === "caprino")?.animaisAbatidos || 0;
+    const ovinosAtual = planosAtual.find((p) => p.produtoId === "ovino")?.animaisAbatidos || 0;
+    const alertaAtual = alertaPrincipal(planosAtual);
+    const presets = cenarios.slice(0, 3);
+    const cenarioAtualNome = presets.find((p) =>
+      ["demandaPct", "precoPct", "capacidadePct"].every((chave) =>
+        Math.abs(Number(state.cenario[chave]) - p.cenario[chave]) < 1e-9))
+      ?.nome || "Cenário personalizado";
+    const descreve = (v, negativo, positivo) => v < 0 ? negativo : v > 0 ? positivo : "Normal";
+    const cenarioDescricao = [
+      descreve(state.cenario.demandaPct, "Demanda mais fraca", "Demanda mais forte"),
+      descreve(state.cenario.precoPct, "Preço abaixo", "Preço acima"),
+      descreve(state.cenario.capacidadePct, "Capacidade reduzida", "Capacidade maior"),
+    ].join(" · ");
+    const cenarioExibicao = cenarioAtualNome === "Cenário personalizado" ? cenarioDescricao : cenarioAtualNome;
+    const topFornecedor = state.ahpResultado?.ranking?.[0];
+    const modoToggle = `<button class="botao secundario" data-acao="alternar-modo-plano" type="button">${state.planoAvancado ? "Modo simples" : "Ajustes avançados"}</button>`;
+
+    const segmento = (campo, valor, rotulo) => {
+      const ativo = Math.abs(Number(state.cenario[campo]) - valor) < 1e-9;
+      return `<button type="button" class="segmento ${ativo ? "ativo" : ""}" data-cenario="${campo}" data-valor="${valor}" aria-pressed="${ativo}">${rotulo}</button>`;
+    };
+    const pergunta = (titulo, campo, opcoes) => `
+      <div class="pergunta">
+        <span class="mini">${titulo}</span>
+        <div class="segmentos">${opcoes.map(([valor, rotulo]) => segmento(campo, valor, rotulo)).join("")}</div>
+      </div>`;
+
+    if (!state.planoAvancado) {
+      return `
+        <div class="grid-2">
+          <section class="card span-2 resumo-decisao" aria-labelledby="titulo-resumo-plano">
+            <div class="card-head">
+              <div>
+                <h2 id="titulo-resumo-plano">Plano da semana</h2>
+                <p>${escapeHtml(cenarioExibicao)} · semana S${state.semanaAtual + 1}</p>
+              </div>
+              ${modoToggle}
+            </div>
+            <div class="resumo-grid">
+              <div class="resumo-item"><span class="mini">Abater</span><strong>${fmtNum(totalAtual.animaisAbatidos)}</strong><small>animais · ${fmtNum(caprinosAtual)} caprinos + ${fmtNum(ovinosAtual)} ovinos</small></div>
+              <div class="resumo-item"><span class="mini">Comprar</span><strong>${fmtNum(totalAtual.necessidadeCompraAnimais)}</strong><small>animais</small></div>
+              <div class="resumo-item"><span class="mini">Estocar</span><strong>${fmtKg(estoqueFinalAtual)}</strong><small>estoque final estimado</small></div>
+              <div class="resumo-item"><span class="mini">Margem</span><strong>${fmtBRL(totalAtual.margem)}</strong><small>no período</small></div>
+            </div>
+            <div class="lista-alertas" aria-live="polite">
+              <div class="alerta ${alertaAtual === "Sem alertas" ? "ok" : "capacidade"}">
+                <strong>${alertaAtual === "Sem alertas" ? "Sem alertas" : "Atenção"}</strong>
+                <span>${escapeHtml(alertaAtual)}</span>
+              </div>
+            </div>
+            <p class="nota">Fornecedor recomendado: <strong>${topFornecedor ? escapeHtml(topFornecedor.nome) : "—"}</strong>${topFornecedor ? ` · score ${fmtPct(topFornecedor.score)}` : ""}.</p>
+          </section>
+
+          <section class="card span-2" aria-labelledby="titulo-perguntas">
+            <div class="card-head">
+              <div>
+                <h2 id="titulo-perguntas">Como será a semana?</h2>
+                <p>Três perguntas rápidas. O resumo acima se ajusta na hora.</p>
+              </div>
+              <span class="badge ${cenarioAtualNome === "Cenário personalizado" ? "premissa" : "ok"}">${escapeHtml(cenarioAtualNome)}</span>
+            </div>
+            <div class="perguntas">
+              ${pergunta("Demanda", "demandaPct", [[-0.1, "Mais fraca"], [0, "Normal"], [0.1, "Mais forte"]])}
+              ${pergunta("Preço de venda", "precoPct", [[-0.05, "Abaixo"], [0, "Normal"], [0.05, "Acima"]])}
+              ${pergunta("Capacidade de abate", "capacidadePct", [[-0.1, "Reduzida"], [0, "Normal"], [0.1, "Maior"]])}
+            </div>
+            <p class="nota">As respostas são independentes: a tabela de cenários combina os três fatores em referências. O resumo acima reflete a sua combinação; o plano base e os parâmetros do modelo ficam nos ajustes avançados.</p>
+          </section>
+
+          <section class="card span-2" aria-labelledby="titulo-cenarios">
+            <div class="card-head">
+              <div>
+                <h2 id="titulo-cenarios">Se a semana for...</h2>
+                <p>Compare a decisão em três cenários.</p>
+              </div>
+            </div>
+            ${tabelaCenarios}
+          </section>
+
+          <details class="card span-2 detalhes-plano">
+            <summary>Ajustes avançados por espécie</summary>
+            <p class="nota">Edite cobertura, capacidade, preços e custos. O plano base é recalculado ao alterar. O resumo acima continua refletindo o cenário escolhido.</p>
+            <div class="grid-2">${cards}</div>
+          </details>
+        </div>
+      `;
+    }
 
     return `
       <div class="grid-2">
@@ -587,7 +696,10 @@ const App = (() => {
               <h2 id="titulo-plano-parametros">Parâmetros do plano</h2>
               <p>Os cartões abaixo mostram o plano base. A tabela simula choques de demanda, preço e capacidade.</p>
             </div>
-            <button class="botao secundario" data-acao="restaurar-parametros" type="button">Restaurar parâmetros</button>
+            <div class="card-acoes">
+              ${modoToggle}
+              <button class="botao secundario" data-acao="restaurar-parametros" type="button">Restaurar parâmetros</button>
+            </div>
           </div>
           <div class="slider-grid">
             ${slider("Demanda", "demandaPct", state.cenario.demandaPct, -20, 20)}
@@ -595,14 +707,7 @@ const App = (() => {
             ${slider("Capacidade de abate", "capacidadePct", state.cenario.capacidadePct, -20, 20)}
           </div>
           <p class="nota">Solte o slider para recalcular. Os valores percentuais são aplicados sobre a previsão, o preço de venda e a capacidade de cada produto.</p>
-
-          <div class="tabela-wrap" style="margin-top:14px">
-            <table class="tabela">
-              <caption>Cenários de sensibilidade do plano consolidado.</caption>
-              <thead><tr><th>Cenário</th><th class="num">Animais a abater</th><th class="num">Margem</th><th>Alerta principal</th></tr></thead>
-              <tbody>${linhasCenarios}</tbody>
-            </table>
-          </div>
+          <div style="margin-top:14px">${tabelaCenarios}</div>
         </section>
 
         ${cards}
@@ -1006,6 +1111,7 @@ ovino;800</pre>
     state.metodo = "auto";
     state.parametros = { ...DADOS.PARAMETROS };
     state.cenario = { demandaPct: 0, precoPct: 0, capacidadePct: 0 };
+    state.planoAvancado = false;
     state.ahp = Fornecedores.restaurarExemplo();
     state.semanaAtual = 52;
     try { localStorage.removeItem(CHAVE); } catch (_) {}
@@ -1022,8 +1128,21 @@ ovino;800</pre>
         render();
         return;
       }
+      const cenario = event.target.closest("[data-cenario]");
+      if (cenario) {
+        state.cenario[cenario.dataset.cenario] = Number(cenario.dataset.valor) || 0;
+        salvar();
+        render();
+        return;
+      }
       const acao = event.target.closest("[data-acao]");
       if (!acao) return;
+      if (acao.dataset.acao === "alternar-modo-plano") {
+        state.planoAvancado = !state.planoAvancado;
+        salvar();
+        render();
+        return;
+      }
       if (acao.dataset.acao === "recalcular") {
         calcularTudo();
         salvar();

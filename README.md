@@ -54,6 +54,17 @@ Abra:
 
 O `slides.pdf` é gerado a partir do deck renderizado (imagens), preservando o layout; o `slides.html` é a versão interativa e acessível.
 
+## GitHub Pages
+
+O deploy é automático a partir da branch `main` pelo workflow
+`.github/workflows/pages.yml`:
+
+**https://emiyakiritsugu3.github.io/SAD_02/**
+
+O site é estático e usa caminhos relativos, então funciona na subpasta do
+projeto. O workflow também pode ser disparado manualmente em **Actions → Deploy
+GitHub Pages → Run workflow**.
+
 Atalhos dos slides: `→`/espaço avançam; `←` voltam; `F` tela cheia; `N` notas do apresentador.
 
 ## Testes
@@ -80,6 +91,8 @@ Detalhes, fórmulas e como atualizar: [`docs/fontes-e-premissas.md`](docs/fontes
 
 ```
 SAD_02/
+├── .github/workflows/pages.yml
+├── .nojekyll
 ├── index.html
 ├── style.css
 ├── slides.html
