@@ -4,3 +4,6 @@ material_do_prof/
 # Dependências e artefatos locais
 node_modules/
 .DS_Store
+.playwright-mcp/
+tmp/
+.superpowers/

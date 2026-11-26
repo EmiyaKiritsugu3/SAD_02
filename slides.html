@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SeridóFrigo — SAD de planejamento semanal</title>
+  <style>
+    @font-face {
+      font-family: "Fraunces";
+      src: url("slides/fonts/fraunces-latin.woff2") format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Archivo";
+      src: url("slides/fonts/archivo-latin.woff2") format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --paper: #f3eadb;
+      --paper-2: #efe3d1;
+      --ink: #2b211a;
+      --ink-soft: #4a3a2d;
+      --muted: #6b5b4d;
+      --terracotta: #b5522f;
+      --terracotta-dark: #8c3d22;
+      --olive: #5d6b4a;
+      --gold: #c99a4b;
+      --line: rgba(43, 33, 26, 0.18);
+      --line-strong: rgba(43, 33, 26, 0.32);
+      --cream: #f7eee0;
+      --dark: #241b15;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      overflow: hidden;
+      background: var(--dark);
+      color: var(--ink);
+      font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .deck { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      padding: clamp(28px, 4.2vw, 62px) clamp(34px, 6vw, 98px) clamp(30px, 4.5vw, 64px);
+      background:
+        radial-gradient(900px 480px at 88% -12%, rgba(201, 154, 75, 0.16), transparent 58%),
+        radial-gradient(700px 520px at 0% 110%, rgba(181, 82, 47, 0.08), transparent 55%),
+        var(--paper);
+      opacity: 0;
+      transform: translateY(16px) scale(0.995);
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.2, .8, .2, 1);
+      overflow: hidden;
+    }
+    .slide.ativo { opacity: 1; transform: none; pointer-events: auto; }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(43, 33, 26, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(43, 33, 26, 0.035) 1px, transparent 1px);
+      background-size: 26px 26px;
+      mask-image: radial-gradient(circle at 50% 50%, #000 20%, transparent 78%);
+    }
+
+    .kicker {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--terracotta-dark);
+      font-size: clamp(0.62rem, 0.8vw, 0.78rem);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .kicker::before {
+      content: "";
+      width: 30px;
+      height: 2px;
+      background: var(--terracotta);
+    }
+
+    .slide-numero {
+      position: absolute;
+      top: clamp(26px, 3.8vw, 52px);
+      right: clamp(30px, 5vw, 80px);
+      z-index: 2;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(0.8rem, 1.1vw, 1rem);
+      color: var(--muted);
+      letter-spacing: 0.12em;
+    }
+
+    h1, h2, h3 {
+      font-family: "Fraunces", Georgia, "Times New Roman", serif;
+      font-weight: 650;
+      letter-spacing: -0.035em;
+      line-height: 0.98;
+      margin: 0;
+    }
+    h1 { font-size: clamp(4.2rem, 12vw, 11.5rem); }
+    h2 { font-size: clamp(2.1rem, 4.6vw, 4.4rem); max-width: 16ch; }
+    h3 { font-size: clamp(1.1rem, 1.5vw, 1.45rem); letter-spacing: -0.02em; }
+    p { margin: 0; }
+    strong { font-weight: 700; }
+
+    .corpo {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      margin-top: clamp(18px, 2.2vw, 30px);
+    }
+
+    .rodape {
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: clamp(0.62rem, 0.78vw, 0.74rem);
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .rodape em { font-style: normal; color: var(--ink-soft); }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+      padding: 4px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .tag.verde { color: var(--olive); border-color: rgba(93, 107, 74, 0.45); background: rgba(93, 107, 74, 0.08); }
+    .tag.ouro { color: #7a5a1e; border-color: rgba(201, 154, 75, 0.55); background: rgba(201, 154, 75, 0.12); }
+    .tag.terra { color: var(--terracotta-dark); border-color: rgba(181, 82, 47, 0.45); background: rgba(181, 82, 47, 0.08); }
+
+    .grade-2 { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(20px, 3.2vw, 44px); }
+    .grade-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(14px, 2vw, 24px); }
+    .grade-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(12px, 1.6vw, 20px); }
+
+    .cartao {
+      background: rgba(255, 250, 242, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: clamp(14px, 1.8vw, 22px);
+      box-shadow: 0 14px 38px rgba(43, 33, 26, 0.06);
+    }
+    .cartao.escuro {
+      background: var(--dark);
+      color: var(--cream);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .cartao.terra { background: var(--terracotta-dark); color: var(--cream); border-color: transparent; }
+
+    .numero-grande {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(2.8rem, 5.4vw, 5.4rem);
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+      color: var(--terracotta-dark);
+    }
+    .numero-grande small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-family: "Archivo", sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      line-height: 1.4;
+    }
+
+    .mini {
+      display: block;
+      color: var(--muted);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+    .valor {
+      display: block;
+      margin-top: 5px;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(1.5rem, 2.6vw, 2.5rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .linha-terra { height: 4px; width: 74px; background: var(--terracotta); border-radius: 999px; }
+
+    .lista-limpa { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+    .lista-limpa li {
+      position: relative;
+      padding-left: 20px;
+      color: var(--ink-soft);
+      font-size: clamp(0.78rem, 1vw, 0.95rem);
+      line-height: 1.45;
+    }
+    .lista-limpa li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--terracotta);
+    }
+    .lista-limpa.verde li::before { background: var(--olive); }
+
+    .shot {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      box-shadow: 0 20px 54px rgba(43, 33, 26, 0.18);
+      background: var(--paper);
+    }
+    .shot.leve { box-shadow: 0 12px 32px rgba(43, 33, 26, 0.12); }
+    .shot-caption {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: clamp(0.6rem, 0.72vw, 0.7rem);
+      line-height: 1.4;
+    }
+
+    .notas {
+      display: none;
+      position: absolute;
+      left: clamp(16px, 3vw, 44px);
+      right: clamp(16px, 3vw, 44px);
+      bottom: clamp(52px, 7vw, 82px);
+      z-index: 8;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: rgba(36, 27, 21, 0.96);
+      color: var(--cream);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+      border-left: 4px solid var(--gold);
+    }
+    body.notas .slide.ativo .notas { display: block; }
+
+    body.captura .controles,
+    body.captura .progresso { display: none !important; }
+
+    /* Controles */
+    .controles {
+      position: fixed;
+      right: clamp(16px, 2.4vw, 34px);
+      bottom: 10px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+    }
+    .controles button {
+      min-width: 42px;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
+      background: rgba(36, 27, 21, 0.82);
+      color: var(--cream);
+      font-family: "Archivo", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+    .controles button:hover { background: var(--terracotta-dark); }
+    .controles button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+    .progresso {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      z-index: 21;
+    }
+    .progresso span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--terracotta);
+      transition: width 0.35s ease;
+    }
+
+    /* Capa */
+    .capa {
+      background:
+        radial-gradient(1100px 620px at 78% 8%, rgba(181, 82, 47, 0.32), transparent 62%),
+        radial-gradient(760px 520px at 4% 100%, rgba(201, 154, 75, 0.14), transparent 58%),
+        var(--dark);
+      color: var(--cream);
+      justify-content: space-between;
+    }
+    .capa::before {
+      content: "S";
+      position: absolute;
+      right: 4vw;
+      top: -0.18em;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 42vw;
+      line-height: 1;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(247, 238, 224, 0.12);
+      pointer-events: none;
+    }
+    .capa .kicker { color: #e6c9a5; }
+    .capa .kicker::before { background: var(--gold); }
+    .capa h1 { font-size: clamp(4.6rem, 13vw, 13rem); color: var(--cream); }
+    .capa .subtitulo {
+      max-width: 44ch;
+      margin-top: 16px;
+      color: #d9c7b2;
+      font-size: clamp(0.95rem, 1.5vw, 1.3rem);
+      line-height: 1.45;
+    }
+    .capa .rodape { border-top-color: rgba(247, 238, 224, 0.18); color: #bcae9e; }
+    .capa .rodape em { color: var(--cream); }
+    .capa .marca {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: #e6c9a5;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .capa .marca::before {
+      content: "";
+      width: 38px;
+      height: 2px;
+      background: var(--terracotta);
+    }
+
+    /* Slides escuros */
+    .slide.escuro {
+      background:
+        radial-gradient(900px 560px at 84% 0%, rgba(181, 82, 47, 0.26), transparent 60%),
+        var(--dark);
+      color: var(--cream);
+    }
+    .slide.escuro h2 { color: var(--cream); }
+    .slide.escuro .kicker { color: #e6c9a5; }
+    .slide.escuro .kicker::before { background: var(--gold); }
+    .slide.escuro .slide-numero { color: #bcae9e; }
+    .slide.escuro .rodape { border-top-color: rgba(247, 238, 224, 0.16); color: #bcae9e; }
+    .slide.escuro .rodape em { color: var(--cream); }
+    .slide.escuro .mini { color: #bcae9e; }
+    .slide.escuro .valor { color: var(--cream); }
+    .slide.escuro .cartao { background: rgba(247, 238, 224, 0.06); border-color: rgba(247, 238, 224, 0.14); box-shadow: none; }
+    .slide.escuro .lista-limpa li { color: #d9c7b2; }
+
+    /* Slide 2 */
+    .contexto-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(24px, 4vw, 56px); align-items: stretch; }
+    .contexto-texto { display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+    .contexto-texto p { color: var(--ink-soft); font-size: clamp(0.86rem, 1.15vw, 1.05rem); line-height: 1.55; max-width: 48ch; }
+    .numeros { display: grid; gap: 14px; align-content: center; }
+    .numeros .cartao { display: flex; flex-direction: column; justify-content: center; }
+
+    /* Slide 3 */
+    .problema-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(14px, 2vw, 22px); margin-top: 8px; }
+    .problema-card { min-height: 150px; display: flex; flex-direction: column; gap: 10px; }
+    .problema-card .indice {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.15rem;
+      color: var(--terracotta);
+    }
+    .problema-card p { color: var(--ink-soft); font-size: clamp(0.74rem, 0.95vw, 0.88rem); line-height: 1.45; }
+    .citacao {
+      margin-top: clamp(14px, 2.2vw, 26px);
+      padding: clamp(14px, 2vw, 22px) clamp(16px, 2.4vw, 28px);
+      border-left: 5px solid var(--terracotta);
+      background: rgba(255, 250, 242, 0.62);
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(1.05rem, 1.9vw, 1.65rem);
+      line-height: 1.22;
+      letter-spacing: -0.02em;
+    }
+
+    /* Slide 4 */
+    .decisao-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(20px, 3vw, 42px); align-items: start; }
+    .persona { display: flex; flex-direction: column; gap: 12px; }
+    .persona .avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--terracotta-dark);
+      color: var(--cream);
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.2rem;
+    }
+    .persona h3 { font-size: clamp(1.2rem, 1.8vw, 1.6rem); }
+    .persona p { color: var(--muted); font-size: 0.84rem; line-height: 1.5; }
+    .fluxo { display: grid; gap: 8px; }
+    .fluxo-item {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 250, 242, 0.6);
+    }
+    .fluxo-item .n {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--ink);
+      color: var(--cream);
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 0.8rem;
+    }
+    .fluxo-item strong { display: block; font-size: 0.88rem; }
+    .fluxo-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 0.74rem; line-height: 1.4; }
+
+    /* Slide 5 */
+    .sad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px; }
+    .sad-card { min-height: 150px; display: flex; flex-direction: column; gap: 10px; }
+    .sad-card .simbolo { font-family: "Fraunces", Georgia, serif; font-size: 1.6rem; color: var(--terracotta); }
+    .sad-card p { color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
+    .fluxo-sad {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      flex-wrap: wrap;
+    }
+    .fluxo-sad span { padding: 5px 9px; border: 1px solid var(--line-strong); border-radius: 999px; }
+    .fluxo-sad b { color: var(--terracotta); font-size: 1rem; }
+
+    /* Slide 6 */
+    .dados-grid { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: clamp(20px, 3vw, 40px); align-items: start; }
+    .fonte-lista { display: grid; gap: 8px; }
+    .fonte-item { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 250, 242, 0.55); }
+    .fonte-item strong { display: block; font-size: 0.8rem; }
+    .fonte-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
+    .aviso {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(201, 154, 75, 0.13);
+      border: 1px solid rgba(201, 154, 75, 0.38);
+      color: #6f5018;
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    /* Slide 7 */
+    .previsao-grid { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: clamp(20px, 3vw, 38px); align-items: start; }
+    .metodos { display: grid; gap: 8px; }
+    .metodo { display: grid; grid-template-columns: 8px 1fr; gap: 10px; align-items: start; }
+    .metodo::before { content: ""; width: 8px; height: 8px; margin-top: 0.55em; border-radius: 50%; background: var(--olive); }
+    .metodo strong { display: block; font-size: 0.84rem; }
+    .metodo small { display: block; color: var(--muted); font-size: 0.72rem; line-height: 1.4; }
+    .metrica-linha { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .metrica {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 250, 242, 0.6);
+      min-width: 92px;
+    }
+    .metrica small { display: block; color: var(--muted); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .metrica strong { display: block; margin-top: 2px; font-family: "Fraunces", Georgia, serif; font-size: 1.05rem; }
+
+    /* Slide 8 */
+    .plano-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: clamp(20px, 3vw, 38px); align-items: start; }
+    .cadeia { display: grid; gap: 4px; }
+    .cadeia-item {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 9px;
+      padding: 7px 0;
+      border-bottom: 1px dashed var(--line);
+      align-items: start;
+    }
+    .cadeia-item:last-child { border-bottom: 0; }
+    .cadeia-item .n { color: var(--terracotta); font-family: "Fraunces", Georgia, serif; font-size: 0.9rem; }
+    .cadeia-item strong { display: block; font-size: 0.8rem; }
+    .cadeia-item small { display: block; color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
+    .resultado-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .resultado-strip .cartao { padding: 10px 12px; }
+    .resultado-strip .valor { font-size: clamp(1.15rem, 1.8vw, 1.65rem); }
+
+    /* Slide 9 */
+    .ahp-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(20px, 3vw, 40px); align-items: start; }
+    .pesos { display: grid; gap: 9px; }
+    .peso { display: grid; grid-template-columns: 1fr 42px; gap: 10px; align-items: center; }
+    .peso .barra { height: 12px; border-radius: 999px; background: rgba(43, 33, 26, 0.1); overflow: hidden; }
+    .peso .barra i { display: block; height: 100%; border-radius: 999px; background: var(--olive); }
+    .peso > small { text-align: right; font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+    .ranking-tabela { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-top: 6px; }
+    .ranking-tabela th {
+      text-align: left;
+      padding: 6px 8px;
+      color: var(--muted);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line-strong);
+    }
+    .ranking-tabela td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    .ranking-tabela tr:last-child td { border-bottom: 0; }
+    .ranking-tabela .pos { font-family: "Fraunces", Georgia, serif; color: var(--terracotta); }
+    .ranking-tabela .score { text-align: right; font-weight: 700; color: var(--olive); }
+    .gate {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-left: 4px solid var(--terracotta);
+      background: rgba(181, 82, 47, 0.08);
+      color: var(--ink-soft);
+      font-size: 0.74rem;
+      line-height: 1.4;
+    }
+
+    /* Slide 10 */
+    .comparativo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 6px; }
+    .comparativo .cartao { min-height: 180px; display: flex; flex-direction: column; gap: 9px; }
+    .comparativo h3 { font-size: clamp(0.95rem, 1.3vw, 1.2rem); }
+    .comparativo p { color: var(--muted); font-size: 0.72rem; line-height: 1.45; }
+    .comparativo .produtos { color: var(--ink-soft); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; }
+    .comparativo .destaque { border-color: rgba(181, 82, 47, 0.42); background: rgba(181, 82, 47, 0.08); }
+    .gap {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--dark);
+      color: var(--cream);
+      font-size: 0.76rem;
+      line-height: 1.4;
+    }
+    .gap strong { color: var(--gold); }
+
+    /* Slide 11 */
+    .limites-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(18px, 3vw, 38px); }
+    .limites-grid .cartao { min-height: 200px; }
+    .limites-grid h3 { margin-bottom: 10px; }
+
+    /* Slide 12 */
+    .fechamento {
+      background:
+        radial-gradient(1000px 600px at 78% 12%, rgba(181, 82, 47, 0.3), transparent 60%),
+        var(--dark);
+      color: var(--cream);
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .fechamento h2 { font-size: clamp(2.6rem, 6.6vw, 6.4rem); max-width: 18ch; color: var(--cream); }
+    .fechamento .subtitulo { margin-top: 20px; color: #d9c7b2; max-width: 46ch; font-size: 0.95rem; line-height: 1.5; }
+    .fechamento .rodape { border-top-color: rgba(247, 238, 224, 0.16); color: #bcae9e; justify-content: flex-start; }
+    .fechamento .rodape em { color: var(--cream); }
+
+    .assinatura {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 26px;
+      color: #e6c9a5;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .assinatura .mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(247, 238, 224, 0.28);
+      border-radius: 10px;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 0.9rem;
+      letter-spacing: 0;
+    }
+
+    @media (max-width: 900px) {
+      .slide { padding: 24px 22px 40px; }
+      .grade-2, .contexto-grid, .decisao-grid, .dados-grid, .previsao-grid, .plano-grid, .ahp-grid, .limites-grid { grid-template-columns: 1fr; }
+      .grade-3, .problema-grid, .sad-grid, .comparativo { grid-template-columns: 1fr 1fr; }
+      .slide-numero { top: 18px; right: 22px; }
+      h2 { max-width: 22ch; }
+    }
+
+    @media (max-width: 620px) {
+      .grade-3, .problema-grid, .sad-grid, .comparativo, .grade-4 { grid-template-columns: 1fr; }
+      .slide { padding: 22px 18px 44px; }
+      .capa h1 { font-size: 18vw; }
+      .controles { right: 12px; bottom: 10px; }
+    }
+
+    @media print {
+      @page { size: 15in 9.375in; margin: 0; }
+      html, body { overflow: visible; height: auto; background: #fff; }
+      .deck { width: auto; height: auto; overflow: visible; }
+      .slide {
+        position: relative;
+        display: flex !important;
+        opacity: 1 !important;
+        transform: none !important;
+        width: 15in;
+        height: 9.375in;
+        page-break-after: always;
+        break-after: page;
+        overflow: hidden;
+      }
+      .slide:last-child { page-break-after: auto; break-after: auto; }
+      .controles, .progresso, .notas { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+
+    <!-- 01 -->
+    <section class="slide capa ativo" data-slide="0">
+      <div>
+        <div class="kicker">DCT2403 · Sistemas de Apoio à Decisão · UFRN/CERES</div>
+        <div class="capa-conteudo" style="margin-top: 7vh;">
+          <h1>Seridó<br>Frigo</h1>
+          <p class="subtitulo">Um SAD para a decisão semanal de um frigorífico de caprinos e ovinos em Caicó/RN.</p>
+        </div>
+      </div>
+      <div class="rodape">
+        <span><em>Sistema + slides</em> · Dezembro/2026</span>
+        <span>Camada de decisão · não é um ERP</span>
+      </div>
+      <div class="notas">Abertura: “Este não é um assistente genérico de AHP. É um SAD para uma decisão específica: quanto abater, quanto estocar e de quem comprar, toda semana, em um frigorífico de Caicó/RN.”</div>
+    </section>
+
+    <!-- 02 -->
+    <section class="slide" data-slide="1">
+      <div class="kicker">01 · Contexto</div>
+      <div class="slide-numero">02 / 12</div>
+      <div class="corpo">
+        <h2>O problema não é decidir uma vez. É decidir toda semana.</h2>
+        <div class="contexto-grid" style="margin-top: clamp(18px, 2.5vw, 30px);">
+          <div class="contexto-texto">
+            <p>O frigorífico compra animais, abate, estoca e vende. A cada segunda-feira, o gestor precisa decidir o tamanho da semana — e cada decisão errada aparece rápido: ruptura, câmara cheia, animal comprado caro ou lote sem conformidade.</p>
+            <p>A planilha ajuda a registrar o passado. Ela não ajuda a decidir o próximo passo.</p>
+            <span class="tag terra">Caicó/RN · Seridó</span>
+            <div class="fluxo-sad" style="margin-top: 14px;">
+              <span>SEG</span><b>→</b><span>Previsão</span><b>→</b><span>Plano</span><b>→</b><span>Compra</span><b>→</b><span>Abate</span>
+            </div>
+          </div>
+          <div class="numeros">
+            <div class="cartao"><span class="numero-grande">15.157<small>caprinos em Caicó/RN · IBGE PPM 2025</small></span></div>
+            <div class="cartao"><span class="numero-grande">24.909<small>ovinos em Caicó/RN · IBGE PPM 2025</small></span></div>
+            <div class="cartao"><span class="numero-grande">180<small>animais/semana · capacidade do caso</small></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="rodape"><span>Fonte: IBGE, Pesquisa da Pecuária Municipal 2025.</span><span>Capacidade e demanda são premissas do caso.</span></div>
+      <div class="notas">Contexto: o frigorífico é pequeno, regional e tem uma rotina semanal. Os números de rebanho são públicos (IBGE). A capacidade de 180 animais/semana é uma premissa do caso, não um dado do IBGE.</div>
+    </section>
+
+    <!-- 03 -->
+    <section class="slide" data-slide="2">
+      <div class="kicker">02 · Problema</div>
+      <div class="slide-numero">03 / 12</div>
+      <div class="corpo">
+        <h2>Planilha + intuição = ruptura, excesso e compra ruim.</h2>
+        <div class="problema-grid" style="margin-top: clamp(18px, 2.5vw, 30px);">
+          <div class="cartao problema-card">
+            <span class="indice">01</span>
+            <h3>Ruptura</h3>
+            <p>O pedido chega, o estoque não. Perde-se a venda e a confiança do açougue ou da feira.</p>
+          </div>
+          <div class="cartao problema-card">
+            <span class="indice">02</span>
+            <h3>Excesso</h3>
+            <p>A câmara enche, o capital fica parado e a validade corre. O que era margem vira perda.</p>
+          </div>
+          <div class="cartao problema-card">
+            <span class="indice">03</span>
+            <h3>Compra ruim</h3>
+            <p>O preço por kg não conta prazo, qualidade, confiabilidade e conformidade sanitária.</p>
+          </div>
+        </div>
+        <div class="citacao">“A virada: de um AHP genérico para um SAD de um frigorífico real — um usuário, uma decisão, um domínio.”</div>
+      </div>
+      <div class="rodape"><span>O recorte da disciplina pede uma necessidade específica.</span><span>O AHP continua — como módulo de decisão de compra.</span></div>
+      <div class="notas">Problema: não é falta de sistema, é falta de decisão. A planilha registra; o SAD projeta. A fala do professor sobre “muito genérico” virou o recorte: um usuário, uma decisão, um domínio.</div>
+    </section>
+
+    <!-- 04 -->
+    <section class="slide" data-slide="3">
+      <div class="kicker">03 · Usuário e decisão</div>
+      <div class="slide-numero">04 / 12</div>
+      <div class="corpo">
+        <h2>Quem decide, o que decide, quando decide.</h2>
+        <div class="decisao-grid" style="margin-top: clamp(18px, 2.5vw, 30px);">
+          <div class="persona cartao">
+            <div class="avatar">GS</div>
+            <h3>Gestor de produção e estoque</h3>
+            <p>Frigorífico Serra do Seridó · Caicó/RN</p>
+            <p>Toda segunda-feira, antes da escala de abate e das compras da semana.</p>
+            <span class="tag ouro">Persona e dados ilustrativos</span>
+          </div>
+          <div class="fluxo">
+            <div class="fluxo-item"><span class="n">1</span><div><strong>Quanto abater?</strong><small>Caprinos e ovinos, por espécie, dentro da capacidade e da câmara.</small></div></div>
+            <div class="fluxo-item"><span class="n">2</span><div><strong>Quanto estocar?</strong><small>Cobertura, estoque de segurança, validade e risco de ruptura.</small></div></div>
+            <div class="fluxo-item"><span class="n">3</span><div><strong>De quem comprar?</strong><small>Preço, qualidade, prazo, confiabilidade — e conformidade sanitária.</small></div></div>
+            <div class="gap"><strong>Saída:</strong> plano da semana + necessidade de compra + alertas + fornecedor recomendado.</div>
+          </div>
+        </div>
+      </div>
+      <div class="rodape"><span>A decisão é recorrente; o sistema precisa ser usado toda semana.</span><span>É isso que separa um SAD de um projeto de compra única.</span></div>
+      <div class="notas">Usuário: o gestor. A decisão é recorrente. O sistema não é um ERP: ele não registra a operação inteira, ele decide em cima dos dados que já existem.</div>
+    </section>
+
+    <!-- 05 -->
+    <section class="slide" data-slide="4">
+      <div class="kicker">04 · Arquitetura SAD</div>
+      <div class="slide-numero">05 / 12</div>
+      <div class="corpo">
+        <h2>Dados, modelos, conhecimento e interface — no mesmo fluxo.</h2>
+        <div class="sad-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
+          <div class="cartao sad-card"><span class="simbolo">01</span><h3>Dados</h3><p>IBGE, Embrapa/Cepea e CSV do frigorífico. Rebanho, preços, custos, demanda e estoque.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">02</span><h3>Modelos</h3><p>Previsão, estoque de segurança, plano semanal, cenários e AHP de fornecedores.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Gate sanitário, capacidade de abate, câmara fria, estoque mínimo e validade.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">04</span><h3>Interface</h3><p>Painel, previsão, plano, ranking de fornecedores e página de dados e premissas.</p></div>
+        </div>
+        <div class="fluxo-sad"><span>Dados</span><b>→</b><span>Modelos</span><b>→</b><span>Decisão</span><b>→</b><span>Interface</span></div>
+        <div class="citacao" style="margin-top: 16px; font-size: clamp(0.9rem, 1.35vw, 1.2rem);">O SAD não substitui o ERP: ele consome os dados e devolve decisão.</div>
+      </div>
+      <div class="rodape"><span>Componentes clássicos de SAD (Turban; Sprague & Watson).</span><span>O conhecimento é explícito: regras, não caixa-preta.</span></div>
+      <div class="notas">Arquitetura: os quatro componentes do SAD. O diferencial é o conhecimento explícito: o gate sanitário e as regras de capacidade entram no cálculo, não ficam só no discurso.</div>
+    </section>
+
+    <!-- 06 -->
+    <section class="slide" data-slide="5">
+      <div class="kicker">05 · Dados e premissas</div>
+      <div class="slide-numero">06 / 12</div>
+      <div class="corpo">
+        <h2>Transparência: o que é real, o que é estimativa e o que é premissa.</h2>
+        <div class="dados-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
+          <div>
+            <span class="tag verde">Fonte pública</span>
+            <div class="fonte-lista" style="margin-top: 10px;">
+              <div class="fonte-item"><strong>IBGE — PPM 2025</strong><small>Rebanho de Caicó/RN: 15.157 caprinos e 24.909 ovinos; série 2015–2025.</small></div>
+              <div class="fonte-item"><strong>Embrapa CIM / Cepea — Set/2026</strong><small>RN: R$ 12,62/kg vivo; carcaça no Nordeste: R$ 22–32/kg.</small></div>
+              <div class="fonte-item"><strong>Embrapa Caprinos e Ovinos</strong><small>Custos de referência e coeficientes: peso ao abate 28–32 kg; rendimento 45–50%.</small></div>
+            </div>
+          </div>
+          <div>
+            <span class="tag ouro">Estimativa / premissa</span>
+            <div class="fonte-lista" style="margin-top: 10px;">
+              <div class="fonte-item"><strong>Série de demanda</strong><small>52 semanas ilustrativas, com sazonalidade de junho/dezembro e ruído determinístico.</small></div>
+              <div class="fonte-item"><strong>Fornecedores</strong><small>Três personas conformes e uma sem GTA, para demonstrar o gate sanitário.</small></div>
+              <div class="fonte-item"><strong>Capacidade e cobertura</strong><small>180 animais/semana; câmara de 6.000 kg; cobertura de 1 semana; z = 1,65.</small></div>
+            </div>
+            <div class="aviso"><strong>Sem dado real, o SAD ainda é um SAD</strong> — desde que a premissa esteja na tela. O sistema importa CSV para o frigorífico plugar o histórico real.</div>
+          </div>
+        </div>
+      </div>
+      <div class="rodape"><span>Fontes completas em <em>docs/fontes-e-premissas.md</em>.</span><span>O que é ilustrativo está rotulado na interface.</span></div>
+      <div class="notas">Transparência: não fingir que a demanda é real. O IBGE e a Embrapa são reais; a série de demanda e os fornecedores são ilustrativos. O CSV permite substituir a série sem mexer no código.</div>
+    </section>
+
+    <!-- 07 -->
+    <section class="slide" data-slide="6">
+      <div class="kicker">06 · Previsão</div>
+      <div class="slide-numero">07 / 12</div>
+      <div class="corpo">
+        <h2>Prever para decidir — e saber quanto o erro custa.</h2>
+        <div class="previsao-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
+          <div>
+            <div class="metodos">
+              <div class="metodo"><div><strong>Média móvel</strong><small>Reage rápido; ignora tendência.</small></div></div>
+              <div class="metodo"><div><strong>Suavização exponencial</strong><small>Pesa mais as semanas recentes; alfa controla a reação.</small></div></div>
+              <div class="metodo"><div><strong>Regressão linear</strong><small>Captura tendência de crescimento ou queda.</small></div></div>
+            </div>
+            <p style="margin-top: 14px; color: var(--muted); font-size: 0.78rem; line-height: 1.5;">O modo automático testa os três métodos nas últimas 4 semanas e escolhe o menor MAE. O backtest está na tela — não é caixa-preta.</p>
+            <div class="metrica-linha">
+              <div class="metrica"><small>Caprino</small><strong>MAE 52 kg</strong></div>
+              <div class="metrica"><small>MAPE</small><strong>6,3%</strong></div>
+              <div class="metrica"><small>Ovino</small><strong>MAE 89 kg</strong></div>
+              <div class="metrica"><small>MAPE</small><strong>8,2%</strong></div>
+            </div>
+            <div class="aviso" style="margin-top: 14px;"><strong>Leitura:</strong> o automático escolheu média móvel no caprino e regressão no ovino. O erro está na tela; a decisão sabe o quanto está apostando.</div>
+          </div>
+          <div>
+            <img class="shot" src="slides/img/previsao.png" alt="Tela de previsão do SeridóFrigo com métodos, backtest e previsão das próximas quatro semanas">
+            <p class="shot-caption">Tela real: método automático, métricas por produto e previsão das próximas 4 semanas.</p>
+          </div>
+        </div>
+      </div>
+      <div class="rodape"><span>MAE e MAPE calculados no backtest de 4 semanas.</span><span>A série é ilustrativa; o método é real.</span></div>
+      <div class="notas">Previsão: o importante não é o método mais sofisticado, é saber o erro. O automático escolhe por MAE. No caprino, média móvel; no ovino, regressão. A tela mostra o backtest.</div>
+    </section>
+
+    <!-- 08 -->
+    <section class="slide" data-slide="7">
+      <div class="kicker">07 · Estoque e plano</div>
+      <div class="slide-numero">08 / 12</div>
+      <div class="corpo">
+        <h2>Da previsão ao animal: a conta que vira decisão.</h2>
+        <div class="plano-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
+          <div>
+            <div class="cadeia">
+              <div class="cadeia-item"><span class="n">1</span><div><strong>Previsão da semana</strong><small>kg de carcaça por espécie.</small></div></div>
+              <div class="cadeia-item"><span class="n">2</span><div><strong>Estoque meta</strong><small>previsão × cobertura + estoque de segurança.</small></div></div>
+              <div class="cadeia-item"><span class="n">3</span><div><strong>Produção necessária</strong><small>meta + previsão − estoque atual.</small></div></div>
+              <div class="cadeia-item"><span class="n">4</span><div><strong>Animais a abater</strong><small>produção ÷ kg de carcaça por animal, limitado pela capacidade e pela câmara.</small></div></div>
+              <div class="cadeia-item"><span class="n">5</span><div><strong>Compra de animais</strong><small>animais abatidos − estoque de animais vivos.</small></div></div>
+            </div>
+            <div class="resultado-strip">
+              <div class="cartao"><span class="mini">Abate total</span><span class="valor">176</span><small class="mini">animais · consolidado</small></div>
+              <div class="cartao"><span class="mini">Margem total</span><span class="valor">R$ 10,1 mil</span><small class="mini">no período · consolidada</small></div>
+              <div class="cartao"><span class="mini">Capacidade total</span><span class="valor">97,8%</span><small class="mini">utilizada · consolidada</small></div>
+            </div>
+          </div>
+          <div>
+            <img class="shot" src="slides/img/plano-card.png" alt="Cartão de plano semanal do caprino com parâmetros, resultados e alertas">
+            <p class="shot-caption">Plano do caprino: parâmetros editáveis, produção, compra, margem e alertas. O custo de produção inclui o que vai para estoque; a margem usa o custo do vendido.</p>
+          </div>
+        </div>
+      </div>
+      <div class="rodape"><span>Plano heurístico: transparente, reproduzível e limitado por capacidade/câmara.</span><span>Não é otimização global; é decisão explicável.</span></div>
+      <div class="notas">Plano: a cadeia de cálculo. O número grande é o plano do caso. O sistema separa custo de produção de custo do vendido para a margem não parecer contraditória. Os alertas mostram quando a capacidade ou a câmara apertam.</div>
+    </section>
+
+    <!-- 09 -->
+    <section class="slide" data-slide="8">
+      <div class="kicker">08 · Fornecedores</div>
+      <div class="slide-numero">09 / 12</div>
+      <div class="corpo">
+        <h2>Quando o preço não é tudo.</h2>
+        <div class="ahp-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
+          <div>
+            <div class="pesos">
+              <div class="peso"><div><small class="mini">Preço</small><div class="barra"><i style="width: 100%;"></i></div></div><small>40%</small></div>
+              <div class="peso"><div><small class="mini">Qualidade da carcaça</small><div class="barra"><i style="width: 75%; background: var(--terracotta);"></i></div></div><small>30%</small></div>
+              <div class="peso"><div><small class="mini">Prazo de entrega</small><div class="barra"><i style="width: 37.5%; background: var(--gold);"></i></div></div><small>15%</small></div>
+              <div class="peso"><div><small class="mini">Confiabilidade</small><div class="barra"><i style="width: 37.5%; background: var(--muted);"></i></div></div><small>15%</small></div>
+            </div>
+            <div class="gate"><strong>Gate sanitário:</strong> fornecedor sem conformidade é excluído antes do cálculo. Nenhum peso compensa isso.</div>
+            <div class="metrica-linha">
+              <div class="metrica"><small>Consistência</small><strong>CR 0%</strong></div>
+              <div class="metrica"><small>Conformes</small><strong>3 de 4</strong></div>
+            </div>
+          </div>
+          <div>
+            <table class="ranking-tabela">
+              <thead><tr><th>#</th><th>Fornecedor</th><th>Preço/kg</th><th class="score">Score</th></tr></thead>
+              <tbody>
+                <tr><td class="pos">1º</td><td><strong>Fazenda Boa Vista</strong><br><small style="color: var(--muted);">Caicó/RN</small></td><td>R$ 13,10</td><td class="score">37,3%</td></tr>
+                <tr><td class="pos">2º</td><td><strong>Lote de Uauá/BA</strong><br><small style="color: var(--muted);">Uauá/BA</small></td><td>R$ 12,40</td><td class="score">32,0%</td></tr>
+                <tr><td class="pos">3º</td><td><strong>Cooperativa Seridó</strong><br><small style="color: var(--muted);">Caicó/RN</small></td><td>R$ 12,80</td><td class="score">30,7%</td></tr>
+              </tbody>
+            </table>
+            <div class="aviso" style="margin-top: 10px; background: rgba(181, 82, 47, 0.08); border-color: rgba(181, 82, 47, 0.3); color: var(--ink-soft);"><strong>Excluído:</strong> Lote informal sem GTA — sem conformidade sanitária.</div>
+            <p class="shot-caption" style="margin-top: 8px;">O mais barato (Uauá, R$ 12,40) não vence: prazo e confiabilidade pesam. O AHP torna o trade-off explícito.</p>
+          </div>
+        </div>
+      </div>
+      <div class="rodape"><span>AHP clássico: matrizes pareadas, autovetor e CR ≤ 10%.</span><span>O gate sanitário é conhecimento, não peso.</span></div>
+      <div class="notas">Fornecedores: o AHP foi adaptado para uma decisão de compra real. O gate sanitário é uma regra de conhecimento: não adianta ser barato se não tem GTA. O ranking mostra o trade-off: o mais barato não é o melhor.</div>
+    </section>
+
+    <!-- 10 -->
+    <section class="slide" data-slide="9">
+      <div class="kicker">09 · Posicionamento</div>
+      <div class="slide-numero">10 / 12</div>
+      <div class="corpo">
+        <h2>Por que não somos um ERP.</h2>
+        <div class="comparativo" style="margin-top: clamp(14px, 2vw, 24px);">
+          <div class="cartao">
+            <h3>ERP frigorífico</h3>
+            <p class="produtos">Sistec · Frigo-Data · AQx · Nevera · Frigosoft</p>
+            <p>SIF/MAPA, NF-e, rastreabilidade, balanças, WMS, custo por lote. Implantação e operação de ERP.</p>
+            <span class="tag">Amplo e regulatório</span>
+          </div>
+          <div class="cartao">
+            <h3>APS enterprise</h3>
+            <p class="produtos">RELEX · Imperia · Logic Factory · CSB · CutLogix</p>
+            <p>S&OP, previsão com IA, balanceamento de carcaça, otimização de cortes. Projetos médios/grandes.</p>
+            <span class="tag">Poderoso e caro</span>
+          </div>
+          <div class="cartao destaque">
+            <h3>SeridóFrigo</h3>
+            <p class="produtos">Camada de decisão semanal</p>
+            <p>Previsão + plano + cenários + AHP de fornecedores. CSV, sem SIF/NF-e. Complementa o ERP ou a planilha.</p>
+            <span class="tag terra">Foco no pequeno frigorífico</span>
+          </div>
+        </div>
+        <div class="gap"><strong>O espaço:</strong> o pequeno frigorífico regional fica entre a planilha e o APS enterprise. O SeridóFrigo ocupa essa lacuna — sem tentar ser um ERP.</div>
+      </div>
+      <div class="rodape"><span>Auditoria de mercado em <em>docs/auditoria-mercado.md</em>.</span><span>Produtos citados apenas como referência de mercado.</span></div>
+      <div class="notas">Posicionamento: a auditoria mostrou que o mercado de ERP é maduro e o de APS é caro. O espaço é a camada de decisão para o pequeno frigorífico. Não somos um ERP; somos o que decide em cima dele.</div>
+    </section>
+
+    <!-- 11 -->
+    <section class="slide" data-slide="10">
+      <div class="kicker">10 · Limitações e próximos passos</div>
+      <div class="slide-numero">11 / 12</div>
+      <div class="corpo">
+        <h2>O que este MVP não faz — e por que isso importa.</h2>
+        <div class="limites-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
+          <div class="cartao">
+            <h3>Não faz</h3>
+            <ul class="lista-limpa">
+              <li>SIF/MAPA, NF-e, rastreabilidade de lote e balanças.</li>
+              <li>Otimização de cortes e balanceamento de carcaça.</li>
+              <li>Dados reais do frigorífico — a série é ilustrativa.</li>
+              <li>Plano ótimo global: o plano é heurístico e explicável.</li>
+            </ul>
+          </div>
+          <div class="cartao">
+            <h3>Próximos passos</h3>
+            <ul class="lista-limpa verde">
+              <li>Importar o histórico real e validar com um frigorífico.</li>
+              <li>Integrar ao ERP/planilha existente via CSV/API.</li>
+              <li>Adicionar mix de cortes e programação linear.</li>
+              <li>Evoluir para multi-usuário/cloud e alertas.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="citacao" style="margin-top: clamp(12px, 1.8vw, 22px);">“Um SAD honesto mostra o limite do modelo, não só o resultado.”</div>
+      </div>
+      <div class="rodape"><span>A limitação está na interface e nos slides.</span><span>Isso protege o usuário e a banca.</span></div>
+      <div class="notas">Limitações: ser explícito é mais forte do que prometer tudo. O MVP não faz SIF, NF-e nem otimização de cortes. O próximo passo é dado real e integração. O valor está na decisão semanal, não na operação inteira.</div>
+    </section>
+
+    <!-- 12 -->
+    <section class="slide fechamento" data-slide="11">
+      <div class="kicker">11 · Demonstração</div>
+      <div class="slide-numero">12 / 12</div>
+      <div class="corpo" style="justify-content: center;">
+        <h2>A decisão da semana em uma tela.</h2>
+        <p class="subtitulo">Previsão, plano, estoque e fornecedor — com as premissas à vista e o limite do modelo declarado.</p>
+        <div class="assinatura"><span class="mark">SF</span> SeridóFrigo · Caicó/RN · DCT2403</div>
+      </div>
+      <div class="rodape"><span><em>Demo ao vivo:</em> painel → previsão → plano → fornecedores → dados.</span><span>Perguntas?</span></div>
+      <div class="notas">Fechamento: demo ao vivo. Roteiro: abrir o painel, mostrar o número de animais e a margem; ir para a previsão e mostrar o backtest; abrir o plano e mudar a cobertura para 3 para ver o alerta; ir para fornecedores e mostrar o gate; finalizar na página de dados e na limitação.</div>
+    </section>
+
+  </div>
+
+  <div class="controles" aria-label="Controles da apresentação">
+    <button id="btn-notas" type="button" aria-label="Mostrar ou ocultar notas do apresentador">Notas · N</button>
+    <button id="btn-full" type="button" aria-label="Entrar ou sair da tela cheia">Tela cheia · F</button>
+    <button id="btn-prev" type="button" aria-label="Slide anterior">←</button>
+    <button id="btn-next" type="button" aria-label="Próximo slide">→</button>
+  </div>
+  <div class="progresso" aria-hidden="true"><span id="barra"></span></div>
+
+  <script>
+    (() => {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const total = slides.length;
+      if (new URLSearchParams(location.search).has("captura")) document.body.classList.add("captura");
+      const barra = document.getElementById("barra");
+      const btnPrev = document.getElementById("btn-prev");
+      const btnNext = document.getElementById("btn-next");
+      const btnFull = document.getElementById("btn-full");
+      const btnNotas = document.getElementById("btn-notas");
+      let atual = 0;
+
+      function mostrar(indice) {
+        atual = Math.max(0, Math.min(total - 1, indice));
+        slides.forEach((slide, i) => slide.classList.toggle("ativo", i === atual));
+        barra.style.width = `${((atual + 1) / total) * 100}%`;
+        const numero = slides[atual].querySelector(".slide-numero");
+        if (numero) numero.textContent = `${String(atual + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+        history.replaceState(null, "", `#${atual + 1}`);
+      }
+
+      function proximo() { mostrar(atual + 1); }
+      function anterior() { mostrar(atual - 1); }
+
+      document.addEventListener("keydown", (event) => {
+        const tecla = event.key;
+        if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(tecla)) { event.preventDefault(); proximo(); }
+        else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(tecla)) { event.preventDefault(); anterior(); }
+        else if (tecla === "Home") { event.preventDefault(); mostrar(0); }
+        else if (tecla === "End") { event.preventDefault(); mostrar(total - 1); }
+        else if (tecla.toLowerCase() === "f") { event.preventDefault(); alternarFullscreen(); }
+        else if (tecla.toLowerCase() === "n") { event.preventDefault(); document.body.classList.toggle("notas"); }
+      });
+
+      btnPrev.addEventListener("click", anterior);
+      btnNext.addEventListener("click", proximo);
+      btnFull.addEventListener("click", alternarFullscreen);
+      btnNotas.addEventListener("click", () => document.body.classList.toggle("notas"));
+
+      function alternarFullscreen() {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      }
+
+      const hash = Number(location.hash.replace("#", ""));
+      mostrar(Number.isFinite(hash) && hash > 0 ? hash - 1 : 0);
+      window.addEventListener("hashchange", () => {
+        const n = Number(location.hash.replace("#", ""));
+        if (Number.isFinite(n) && n > 0) mostrar(n - 1);
+      });
+    })();
+  </script>
+</body>
+</html>
