@@ -647,6 +647,7 @@ code {
   .kpi-grid { grid-template-columns: 1fr; }
   .resumo-grid { grid-template-columns: 1fr; }
   .card { padding: 16px; }
+  .resumo-decisao .card-head { flex-direction: column; align-items: stretch; }
   .topbar-acoes { flex-direction: column; align-items: stretch; }
   .semana { width: 100%; }
   .semana select { width: 100%; }
