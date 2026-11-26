@@ -1,0 +1,9 @@
+# Material didático do professor — uso local, não redistribuir
+material_do_prof/
+
+# Dependências e artefatos locais
+node_modules/
+.DS_Store
+.playwright-mcp/
+tmp/
+.superpowers/

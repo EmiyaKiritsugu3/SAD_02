@@ -1,0 +1,5 @@
+{
+  "name": "seridofrigo",
+  "private": true,
+  "scripts": { "test": "node --test" }
+}

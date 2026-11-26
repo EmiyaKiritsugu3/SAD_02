@@ -1,8 +1,12 @@
 # Contexto e decisões — SAD_02
 
 **Data:** 2026-11-26
-**Status:** em definição; nada implementado
+**Status:** MVP implementado em 2026-11-26; ver `README.md`
 **Local do domínio:** Caicó/RN (Seridó)
+
+> **Nota:** as seções 1–10 registram o histórico da definição. O recorte final e
+> o MVP estão no README, na spec e na auditoria de mercado. Ver também a seção 11
+> ao final deste documento.
 
 ## 1. Origem da nova fase
 
@@ -172,3 +176,35 @@ Sem build e sem dependências de runtime; testes com `node:test`.
 > recorte que a professora Karliane pediu? Posso seguir por esse caminho?
 
 Preencher os colchetes quando o domínio for confirmado.
+
+## 11. Atualização 2026-11-26 — MVP implementado
+
+O projeto foi reposicionado e implementado como **SAD de planejamento semanal
+de abate e estoque** para um frigorífico de caprinos/ovinos em Caicó/RN. O
+motor AHP foi reaproveitado como **módulo de seleção de fornecedores**, com gate
+sanitário.
+
+**O que mudou em relação ao plano original:**
+
+- O domínio não é mais a compra de um freezer; é a **decisão recorrente** de
+  quanto abater, estocar e comprar a cada semana.
+- O AHP deixou de ser o produto inteiro e passou a ser um módulo de decisão de
+  compra, dentro de um fluxo maior (previsão → estoque → plano → fornecedor).
+- A postura é de **camada de decisão** complementar ao ERP/planilha, não de ERP.
+  A auditoria de mercado está em `docs/auditoria-mercado.md`.
+
+**Entregue:**
+
+- Aplicação estática (`index.html`) com painel, previsão, plano, fornecedores e
+  dados.
+- 57 testes com `node:test`.
+- Slides (`slides.html`, `slides.pdf`) e roteiro (`slides/roteiro.md`).
+- Dados públicos documentados + série de demanda ilustrativa + importação CSV.
+- Spec, plano e auditoria em `docs/`.
+
+**Pendências:**
+
+1. Validar o recorte e a demo com o professor.
+2. Importar dados reais de um frigorífico e comparar o plano com a decisão do
+   gestor.
+3. Evoluir para mix de cortes/LP e integração com ERP.
