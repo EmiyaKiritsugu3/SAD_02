@@ -81,8 +81,8 @@ const App = (() => {
   function metodoEscolhido(serie) {
     if (state.metodo === "auto") return Previsao.escolherMelhor(serie, 4);
     const params = state.metodo === "ses"
-      ? { alfa: 0.3 }
-      : state.metodo === "mediaMovel" ? { janela: 4 } : {};
+      ? { alfa: Number(state.parametros.alfa) || 0.3 }
+      : state.metodo === "mediaMovel" ? { janela: Number(state.parametros.janela) || 4 } : {};
     return { metodo: state.metodo, params, metricas: Previsao.backtest(serie, state.metodo, params, 4) };
   }
 
@@ -115,8 +115,8 @@ const App = (() => {
     state.ahpResultado = Fornecedores.avaliar(state.ahp);
   }
 
-  function metodoLabel() {
-    const m = state.previsoes.caprino?.escolha?.metodo || state.metodo;
+  function metodoLabel(metodo) {
+    const m = metodo || state.previsoes.caprino?.escolha?.metodo || state.metodo;
     return {
       auto: "Automático",
       mediaMovel: "Média móvel",
@@ -275,6 +275,156 @@ const App = (() => {
     `;
   }
 
+  function renderPrevisao() {
+    const produtos = state.dados.PRODUTOS;
+    const opcoes = [
+      ["auto", "Automático (menor MAE)"],
+      ["mediaMovel", "Média móvel"],
+      ["ses", "Suavização exponencial"],
+      ["regressao", "Regressão linear"],
+    ].map(([valor, rotulo]) => `<option value="${valor}" ${state.metodo === valor ? "selected" : ""}>${rotulo}</option>`).join("");
+
+    const controles = `
+      <section class="card span-2" aria-labelledby="titulo-metodo">
+        <div class="card-head">
+          <div>
+            <h2 id="titulo-metodo">Método de previsão</h2>
+            <p>Escolha o método ou deixe o automático decidir pelo menor MAE no backtest.</p>
+          </div>
+          <span class="badge ${state.metodo === "auto" ? "ok" : "premissa"}">${state.metodo === "auto" ? "Automático" : "Manual"}</span>
+        </div>
+        <div class="form-grid">
+          <label class="campo">Método
+            <select data-campo="metodo">${opcoes}</select>
+          </label>
+          <label class="campo">Janela da média móvel
+            <input type="number" data-campo="janela" min="1" max="12" step="1" value="${Number(state.parametros.janela) || 4}">
+          </label>
+          <label class="campo">Alfa da suavização
+            <input type="number" data-campo="alfa" min="0.05" max="0.95" step="0.05" value="${Number(state.parametros.alfa) || 0.3}">
+          </label>
+        </div>
+        <p class="nota">O backtest treina nas primeiras 48 semanas e compara as últimas 4 com o realizado. MAE é o erro médio absoluto em kg; MAPE é o erro percentual médio. A janela e o alfa são usados quando o método correspondente está selecionado.</p>
+      </section>
+    `;
+
+    const graficos = produtos.map((p) => {
+      const prev = state.previsoes[p.id];
+      const serie = prev.serie;
+      const n = serie.length;
+      const labels = [
+        ...serie.map((_, i) => `S${i + 1}`),
+        ...prev.prev4.map((_, i) => `S${n + 1 + i}`),
+      ];
+      const historico = [...serie, null, null, null, null];
+      const previsao = n > 0
+        ? [...Array(n - 1).fill(null), serie[n - 1], ...prev.prev4]
+        : [...prev.prev4];
+      const metricas = prev.escolha.metricas || {};
+      const backtest = metricas.previstos?.length && metricas.reais?.length
+        ? `Backtest — previsto: ${metricas.previstos.map((v) => fmtKg(v)).join(" · ")} | real: ${metricas.reais.map((v) => fmtKg(v)).join(" · ")}`
+        : "Backtest indisponível para esta série.";
+
+      return `
+        <section class="card" aria-labelledby="prev-${p.id}">
+          <div class="card-head">
+            <div>
+              <h2 id="prev-${p.id}">${escapeHtml(p.nome)}</h2>
+              <p>Histórico de 52 semanas e previsão das próximas 4.</p>
+            </div>
+            <span class="badge estimativa">Série ilustrativa</span>
+          </div>
+          ${Charts.linha({
+            series: [
+              { nome: "Histórico", valores: historico, cor: "#b5522f" },
+              { nome: "Previsão", valores: previsao, cor: "#5d6b4a", tracejado: true },
+            ],
+            labels,
+            height: 300,
+            rotuloY: "kg",
+          })}
+          <p class="nota">${escapeHtml(backtest)}</p>
+        </section>
+      `;
+    }).join("");
+
+    const linhasMetricas = produtos.map((p) => {
+      const prev = state.previsoes[p.id];
+      const m = prev.escolha.metricas || {};
+      return `
+        <tr>
+          <td><strong>${escapeHtml(p.nome)}</strong></td>
+          <td>${escapeHtml(metodoLabel(prev.escolha.metodo))}</td>
+          <td class="num">${fmtKg(m.mae || 0)}</td>
+          <td class="num">${m.mape == null ? "—" : fmtPct(m.mape)}</td>
+        </tr>`;
+    }).join("");
+
+    const linhasPrevisao = [0, 1, 2, 3].map((i) => {
+      const caprino = state.previsoes.caprino?.prev4?.[i] || 0;
+      const ovino = state.previsoes.ovino?.prev4?.[i] || 0;
+      return `
+        <tr>
+          <td>S${state.semanaAtual + 1 + i}</td>
+          <td class="num">${fmtKg(caprino)}</td>
+          <td class="num">${fmtKg(ovino)}</td>
+          <td class="num destaque">${fmtKg(caprino + ovino)}</td>
+        </tr>`;
+    }).join("");
+
+    return `
+      <div class="grid-2">
+        ${controles}
+        ${graficos}
+        <section class="card" aria-labelledby="titulo-metricas">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-metricas">Erro do método escolhido</h2>
+              <p>MAE e MAPE calculados no backtest de 4 semanas.</p>
+            </div>
+          </div>
+          <div class="tabela-wrap">
+            <table class="tabela">
+              <caption>Quanto menor, melhor. O automático escolhe o menor MAE por produto.</caption>
+              <thead><tr><th>Produto</th><th>Método</th><th class="num">MAE</th><th class="num">MAPE</th></tr></thead>
+              <tbody>${linhasMetricas}</tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="titulo-proximas">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-proximas">Próximas 4 semanas</h2>
+              <p>Previsão usada como entrada do plano semanal.</p>
+            </div>
+          </div>
+          <div class="tabela-wrap">
+            <table class="tabela">
+              <caption>Previsão em kg de carcaça por espécie.</caption>
+              <thead><tr><th>Semana</th><th class="num">Caprino</th><th class="num">Ovino</th><th class="num">Total</th></tr></thead>
+              <tbody>${linhasPrevisao}</tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card span-2" aria-labelledby="titulo-como">
+          <div class="card-head">
+            <div>
+              <h2 id="titulo-como">Como o SAD prevê</h2>
+              <p>Transparência para o gestor e para a banca.</p>
+            </div>
+          </div>
+          <ul class="lista-explicacao">
+            <li><strong>Média móvel:</strong> média das últimas N semanas; reage rápido a mudanças, mas ignora tendência.</li>
+            <li><strong>Suavização exponencial:</strong> dá mais peso às semanas recentes; o alfa controla a velocidade de reação.</li>
+            <li><strong>Regressão linear:</strong> ajusta uma tendência aos dados; funciona melhor quando a demanda cresce ou cai de forma constante.</li>
+            <li><strong>Automático:</strong> testa os três métodos nas últimas 4 semanas e escolhe o de menor MAE.</li>
+            <li><strong>Limite:</strong> a série é ilustrativa. Importe CSV na aba Dados para usar o histórico real do frigorífico.</li>
+          </ul>
+        </section>
+      </div>
+    `;
+  }
+
   function renderEmConstrucao(aba) {
     const nome = TITULOS[aba]?.[0] || aba;
     return `<section class="placeholder"><h2>${escapeHtml(nome)}</h2><p>Esta tela será conectada na próxima etapa da implementação.</p></section>`;
@@ -297,6 +447,7 @@ const App = (() => {
     const app = document.getElementById("app");
     if (!app) return;
     if (state.aba === "painel") app.innerHTML = renderPainel();
+    else if (state.aba === "previsao") app.innerHTML = renderPrevisao();
     else app.innerHTML = renderEmConstrucao(state.aba);
   }
 
@@ -346,6 +497,21 @@ const App = (() => {
     if (semana) {
       semana.addEventListener("change", (event) => {
         state.semanaAtual = Number(event.target.value) || 52;
+        render();
+      });
+    }
+
+    const app = document.getElementById("app");
+    if (app) {
+      app.addEventListener("change", (event) => {
+        const campo = event.target.closest("[data-campo]");
+        if (!campo) return;
+        const nome = campo.dataset.campo;
+        if (nome === "metodo") state.metodo = campo.value;
+        if (nome === "janela") state.parametros.janela = Math.max(1, Math.min(12, Number(campo.value) || 4));
+        if (nome === "alfa") state.parametros.alfa = Math.max(0.05, Math.min(0.95, Number(campo.value) || 0.3));
+        calcularTudo();
+        salvar();
         render();
       });
     }
