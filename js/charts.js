@@ -78,7 +78,7 @@ const Charts = (() => {
     });
 
     partes.push("</svg>");
-    return partes.join("");
+    return `<div class="chart-wrap">${partes.join("")}</div>`;
   }
 
   function barras({ itens = [], width = 640, height = 220, cor = "#5d6b4a", formato = formatarNumero } = {}) {
@@ -100,7 +100,7 @@ const Charts = (() => {
     });
 
     partes.push("</svg>");
-    return partes.join("");
+    return `<div class="chart-wrap">${partes.join("")}</div>`;
   }
 
   return {

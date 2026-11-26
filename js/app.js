@@ -18,6 +18,7 @@ const App = (() => {
     },
     ahpResultado: null,
     cenario: { demandaPct: 0, precoPct: 0, capacidadePct: 0 },
+    erroCalculo: null,
     mensagem: null,
   };
 
@@ -108,21 +109,26 @@ const App = (() => {
   }
 
   function calcularTudo() {
-    state.planos = {};
-    state.previsoes = {};
-    for (const produto of state.dados.PRODUTOS) {
-      const serie = state.dados.DEMANDA[produto.id] || [];
-      const escolha = metodoEscolhido(serie);
-      const prev4 = Previsao.prever(serie, escolha.metodo, escolha.params, 4);
-      const seguranca = produto.estoqueSegurancaKgOverride !== undefined
-        ? Math.max(0, Number(produto.estoqueSegurancaKgOverride) || 0)
-        : Estoque.estoqueSeguranca(serie, state.parametros.z, state.parametros.leadTimeSemanas);
-      const segurancaArredondada = Math.round(seguranca * 10) / 10;
-      state.previsoes[produto.id] = { escolha, prev4, seguranca: segurancaArredondada, serie };
-      state.planos[produto.id] = Plano.calcularPlano(inputPlano(produto));
+    try {
+      state.planos = {};
+      state.previsoes = {};
+      for (const produto of state.dados.PRODUTOS) {
+        const serie = state.dados.DEMANDA[produto.id] || [];
+        const escolha = metodoEscolhido(serie);
+        const prev4 = Previsao.prever(serie, escolha.metodo, escolha.params, 4);
+        const seguranca = produto.estoqueSegurancaKgOverride !== undefined
+          ? Math.max(0, Number(produto.estoqueSegurancaKgOverride) || 0)
+          : Estoque.estoqueSeguranca(serie, state.parametros.z, state.parametros.leadTimeSemanas);
+        const segurancaArredondada = Math.round(seguranca * 10) / 10;
+        state.previsoes[produto.id] = { escolha, prev4, seguranca: segurancaArredondada, serie };
+        state.planos[produto.id] = Plano.calcularPlano(inputPlano(produto));
+      }
+      state.consolidado = Plano.consolidar(Object.values(state.planos));
+      state.ahpResultado = Fornecedores.avaliar(state.ahp);
+      state.erroCalculo = null;
+    } catch (err) {
+      state.erroCalculo = err.message || "Falha no cálculo.";
     }
-    state.consolidado = Plano.consolidar(Object.values(state.planos));
-    state.ahpResultado = Fornecedores.avaliar(state.ahp);
   }
 
   function metodoLabel(metodo) {
@@ -584,7 +590,7 @@ const App = (() => {
     return String(Math.round(n * 1000) / 1000);
   }
 
-  function matrizTabela(matriz, nomes, tipo, criterioId = "", rotuloPrimeira = "Critério") {
+  function matrizTabela(matriz, nomes, tipo, criterioId = "", rotuloPrimeira = "Critério", legenda = "Matriz de comparação") {
     const n = nomes.length;
     const head = nomes.map((nome) => `<th scope="col">${escapeHtml(nome)}</th>`).join("");
     let linhas = "";
@@ -601,7 +607,7 @@ const App = (() => {
       }
       linhas += `<tr><th scope="row">${escapeHtml(nomes[i])}</th>${celulas}</tr>`;
     }
-    return `<div class="tabela-wrap"><table class="tabela matriz"><thead><tr><th scope="col">${escapeHtml(rotuloPrimeira)}</th>${head}</tr></thead><tbody>${linhas}</tbody></table></div>`;
+    return `<div class="tabela-wrap"><table class="tabela matriz"><caption>${escapeHtml(legenda)}</caption><thead><tr><th scope="col">${escapeHtml(rotuloPrimeira)}</th>${head}</tr></thead><tbody>${linhas}</tbody></table></div>`;
   }
 
   function renderFornecedores() {
@@ -626,7 +632,7 @@ const App = (() => {
         <details class="matriz-detalhe">
           <summary>${escapeHtml(c.nome)} <span class="badge ${cr <= 0.10 ? "ok" : "premissa"}">peso ${fmtPct(pesos[i] || 0)}</span></summary>
           <p class="nota">${escapeHtml(c.descricao)}</p>
-          ${M ? matrizTabela(M, nomesAlt, "alternativa", c.id, "Alternativa") : `<p class="nota">Matriz indisponível.</p>`}
+          ${M ? matrizTabela(M, nomesAlt, "alternativa", c.id, "Alternativa", `Comparações entre fornecedores — ${c.nome}`) : `<p class="nota">Matriz indisponível.</p>`}
         </details>`;
     }).join("");
 
@@ -699,7 +705,7 @@ const App = (() => {
             </div>
             <button class="botao secundario" data-acao="restaurar-ahp" type="button">Restaurar exemplo</button>
           </div>
-          ${matrizTabela(state.ahp.matrizCriterios, nomesCrit, "criterios")}
+          ${matrizTabela(state.ahp.matrizCriterios, nomesCrit, "criterios", "", "Critério", "Comparações pareadas entre critérios")}
         </section>
 
         <section class="card span-2" aria-labelledby="titulo-matriz-alt">
@@ -883,12 +889,21 @@ ovino;800</pre>
 
     const app = document.getElementById("app");
     if (!app) return;
-    if (state.aba === "painel") app.innerHTML = renderPainel();
-    else if (state.aba === "previsao") app.innerHTML = renderPrevisao();
-    else if (state.aba === "plano") app.innerHTML = renderPlano();
-    else if (state.aba === "fornecedores") app.innerHTML = renderFornecedores();
-    else if (state.aba === "dados") app.innerHTML = renderDados();
-    else app.innerHTML = renderEmConstrucao(state.aba);
+    const avisoErro = state.erroCalculo
+      ? `<div class="alerta capacidade" role="alert" style="margin-bottom:16px"><strong>Erro</strong><span>${escapeHtml(state.erroCalculo)}</span></div>`
+      : "";
+    try {
+      let conteudo = "";
+      if (state.aba === "painel") conteudo = renderPainel();
+      else if (state.aba === "previsao") conteudo = renderPrevisao();
+      else if (state.aba === "plano") conteudo = renderPlano();
+      else if (state.aba === "fornecedores") conteudo = renderFornecedores();
+      else if (state.aba === "dados") conteudo = renderDados();
+      else conteudo = renderEmConstrucao(state.aba);
+      app.innerHTML = avisoErro + conteudo;
+    } catch (err) {
+      app.innerHTML = avisoErro + `<div class="alerta capacidade" role="alert"><strong>Erro</strong><span>${escapeHtml(err.message || "Falha ao montar a tela.")}</span></div>`;
+    }
   }
 
   function preencherSemanas() {
