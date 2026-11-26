@@ -55,3 +55,16 @@ test("matrizValida aceita matriz 2x2 e rejeita dimensão/valor inválido", () =>
   assert.equal(DADOS.matrizValida([[1, 2]], 2), false);
   assert.equal(DADOS.matrizValida([[1, "x"], [1 / 2, 1]], 2), false);
 });
+
+test("dadosValidos rejeita produto sem campo do plano", () => {
+  const d = DADOS.clonarDados();
+  delete d.PRODUTOS[0].capacidadeAbateAnimais;
+  assert.equal(DADOS.dadosValidos(d), false);
+});
+
+test("dadosValidos rejeita semanas fora de ordem", () => {
+  const d = DADOS.clonarDados();
+  d.DEMANDA.semanas = [...d.DEMANDA.semanas];
+  [d.DEMANDA.semanas[0], d.DEMANDA.semanas[1]] = [d.DEMANDA.semanas[1], d.DEMANDA.semanas[0]];
+  assert.equal(DADOS.dadosValidos(d), false);
+});

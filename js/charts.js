@@ -26,7 +26,7 @@ const Charts = (() => {
     return `${nfDec.format((Number(n) || 0) * 100)}%`;
   }
 
-  function linha({ series = [], labels = [], width = 760, height = 290, rotuloY = "kg", formatoY = formatarNumero } = {}) {
+  function linha({ series = [], labels = [], width = 760, height = 290, rotuloY = "kg", formatoY = formatarNumero, cor = "#b5522f" } = {}) {
     const pad = { top: 30, right: 24, bottom: 40, left: 68 };
     const w = width - pad.left - pad.right;
     const h = height - pad.top - pad.bottom;
@@ -54,7 +54,7 @@ const Charts = (() => {
     });
 
     series.forEach((s, idx) => {
-      const cor = s.cor || (idx === 0 ? "#b5522f" : "#5d6b4a");
+      const corSerie = s.cor || (idx === 0 ? cor : "#5d6b4a");
       let d = "", caneta = false;
       s.valores.forEach((v, i) => {
         if (v === null || !Number.isFinite(v)) { caneta = false; return; }
@@ -62,17 +62,17 @@ const Charts = (() => {
         d += `${caneta ? " L" : " M"}${px.toFixed(1)} ${py.toFixed(1)}`;
         caneta = true;
       });
-      partes.push(`<path d="${d}" fill="none" stroke="${cor}" stroke-width="2.5" ${s.tracejado ? 'stroke-dasharray="7 6"' : ""} stroke-linejoin="round" stroke-linecap="round" />`);
+      partes.push(`<path d="${d}" fill="none" stroke="${corSerie}" stroke-width="2.5" ${s.tracejado ? 'stroke-dasharray="7 6"' : ""} stroke-linejoin="round" stroke-linecap="round" />`);
       s.valores.forEach((v, i) => {
         if (v === null || !Number.isFinite(v)) return;
-        partes.push(`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${cor}" />`);
+        partes.push(`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${corSerie}" />`);
       });
     });
 
     let lx = pad.left;
     series.forEach((s, idx) => {
-      const cor = s.cor || (idx === 0 ? "#b5522f" : "#5d6b4a");
-      partes.push(`<line x1="${lx}" y1="14" x2="${lx + 18}" y2="14" stroke="${cor}" stroke-width="3" ${s.tracejado ? 'stroke-dasharray="5 4"' : ""} />`);
+      const corSerie = s.cor || (idx === 0 ? cor : "#5d6b4a");
+      partes.push(`<line x1="${lx}" y1="14" x2="${lx + 18}" y2="14" stroke="${corSerie}" stroke-width="3" ${s.tracejado ? 'stroke-dasharray="5 4"' : ""} />`);
       partes.push(`<text x="${lx + 24}" y="18" class="chart-label">${escapeHtml(s.nome || `Série ${idx + 1}`)}</text>`);
       lx += 24 + String(s.nome || "").length * 7 + 26;
     });

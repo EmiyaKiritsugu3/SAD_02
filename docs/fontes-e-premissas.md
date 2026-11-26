@@ -19,7 +19,7 @@
 - **Capacidade:** 180 animais/semana (90 caprinos + 90 ovinos); câmara fria de 6.000 kg (3.000 kg por espécie).
 - **Cobertura:** 1 semana de demanda + estoque de segurança.
 - **Estoque de segurança:** z = 1,65 (95% de nível de serviço) e lead time de 1 semana.
-- **Preços e custos:** valores base editáveis na aba Plano. Derivados das referências públicas e das premissas de rendimento.
+- **Preços e custos:** custos de compra derivados das referências públicas e das premissas de rendimento; preços de venda base (R$ 35/kg caprino e R$ 38/kg ovino) são premissas ilustrativas editáveis na aba Plano.
 - **Margem:** receita − custo do que foi vendido; o custo de produção inclui o que vai para estoque e aparece separado na interface.
 
 ## 3. Fórmulas
@@ -31,7 +31,7 @@
 - **Regressão linear:** mínimos quadrados com `x = 1..n`; projeção `intercepto + inclinação × (n + h)`.
 - **MAE:** média de `|previsto − real|`.
 - **MAPE:** média de `|previsto − real| / real`, ignorando semanas com real = 0.
-- **Backtest:** treina nas primeiras 48 semanas e testa nas últimas 4.
+- **Backtest:** usa o histórico disponível para treinar e testa as últimas 4 semanas; na série padrão de 52 semanas, isso corresponde a 48 semanas de treino e 4 de teste.
 
 ### Estoque
 
@@ -45,7 +45,7 @@
 - `estoque meta = previsão × cobertura + estoque de segurança`.
 - `produção necessária = max(0, estoque meta + previsão − estoque atual)`.
 - `animais necessários = produção necessária / kg de carcaça por animal`.
-- `animais abatidos = min(ceil(animais necessários), capacidade de abate, limite da câmara)`.
+- `animais abatidos = floor(min(ceil(animais necessários), capacidade de abate, limite da câmara))`.
 - `estoque final = estoque atual + produção − demanda atendida`.
 - `necessidade de compra = max(0, animais abatidos − animais vivos)`.
 - `margem = receita − custo do vendido`.
@@ -81,7 +81,7 @@ O arquivo é processado no navegador; nada é enviado a servidor. Em caso de err
 
 ## 6. Validação
 
-- **2026-11-26:** 51 testes automatizados passando (`npm test`).
+- **2026-11-26:** 57 testes automatizados passando (`npm test`).
 - Aplicação verificada no navegador em 360 px, 768 px e 1366 px, sem erros de
   console e sem overflow horizontal.
 - Importação CSV testada com arquivo válido e inválido; o inválido não altera o

@@ -28,7 +28,7 @@ Toda segunda-feira:
 - **Previsão:** média móvel, suavização exponencial e regressão linear; backtest nas últimas 4 semanas; MAE/MAPE; modo automático pelo menor MAE.
 - **Plano semanal:** estoque de segurança, cobertura, produção, animais, compra, margem e limites de capacidade/câmara.
 - **Cenários:** sliders de demanda, preço e capacidade; tabela pessimista/base/otimista.
-- **Fornecedores (AHP):** critérios pareados, CR ≤ 10%, ranking e **gate sanitário** (fornecedor sem conformidade é excluído antes do cálculo).
+- **Fornecedores (AHP):** critérios pareados, verificação de CR (aviso acima de 10%), ranking e **gate sanitário** (fornecedor sem conformidade é excluído antes do cálculo).
 - **Dados e premissas:** fontes públicas, valores usados, importação CSV de demanda e estoque, restauração do exemplo.
 - **Persistência:** parâmetros, matrizes AHP e cenários ficam no `localStorage`.
 
@@ -73,7 +73,7 @@ Atalhos dos slides: `→`/espaço avançam; `←` voltam; `F` tela cheia; `N` no
 npm test
 ```
 
-A suíte usa `node:test` e cobre o motor AHP, previsão, estoque, plano, fornecedores e CSV. Estado atual: **51 testes passando**.
+A suíte usa `node:test` e cobre o motor AHP, previsão, estoque, plano, fornecedores e CSV. Estado atual: **57 testes passando**.
 
 ## Dados e premissas
 

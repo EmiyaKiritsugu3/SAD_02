@@ -489,7 +489,7 @@ Expected: FAIL com `Cannot find module '../js/plano.js'`.
 
 Regras:
 
-0. Sanitizar entradas: `previsaoSemana`, `estoqueAtualKg`, `estoqueSegurancaKg`, `coberturaSemanas`, `capacidadeAbateAnimais`, `capacidadeCamaraKg`, `estoqueMinKg`, `precoVendaKg`, `custoCompraKg`, `custoAbateKg` e `animaisVivos` viram `Math.max(0, valor)`; valores não numéricos viram `0`.
+0. Sanitizar entradas: `previsaoSemana`, `estoqueAtualKg`, `estoqueSegurancaKg`, `coberturaSemanas`, `capacidadeAbateAnimais`, `capacidadeCamaraKg`, `estoqueMinKg`, `precoVendaKg`, `custoCompraKg`, `custoAbateKg` e `animaisVivos` viram `Math.max(0, valor)`; valores não numéricos viram `0`. `produto.kgCarcacaAnimal` deve ser finito e > 0; caso contrário, usar `0.01` para evitar `Infinity`/`NaN`.
 1. `estoqueMetaKg = previsaoSemana * coberturaSemanas + estoqueSegurancaKg`.
 2. `producaoNecessariaKg = Math.max(0, estoqueMetaKg + previsaoSemana - estoqueAtualKg)`.
 3. `animaisNecessarios = producaoNecessariaKg / kgCarcacaAnimal`.
@@ -683,7 +683,7 @@ Regras:
 - Detectar delimitador pela primeira linha: `;` se houver mais `;` que `,`, senão `,`.
 - Suportar campos entre aspas duplas com vírgula/ponto e vírgula internos.
 - Ignorar linhas vazias.
-- `importarDemanda`: exigir header com `semana`, `caprino`, `ovino` (case-insensitive, trim); converter com `Number`; se qualquer valor for `NaN` ou negativo, lançar `Error("CSV de demanda inválido")`.
+- `importarDemanda`: exigir header com `semana`, `caprino`, `ovino` (case-insensitive, trim); validar `semana` como inteiro positivo, rejeitar duplicadas, ordenar os registros por semana e retornar também `semanas`; converter com `Number`; se qualquer valor for `NaN` ou negativo, lançar `Error("CSV de demanda inválido")`.
 - `importarEstoque`: exigir header `produto`, `estoque_kg`; aceitar `caprino` e `ovino`; valores `NaN`/negativos → `Error("CSV de estoque inválido")`.
 - `parse` vazio → `[]`.
 
@@ -805,7 +805,7 @@ const state = {
 Funções:
 
 - `carregar()` / `salvar()` no `localStorage` (merge defensivo com defaults).
-- `calcularTudo()`: para cada produto, `Previsao.escolherMelhor(serie)` (ou método escolhido), `Estoque.estoqueSeguranca(serie, z, leadTime)`, `Plano.calcularPlano({...})`; guardar em `state.previsoes` e `state.planos`.
+- `calcularTudo()`: cortar cada série em `state.semanaAtual` com `Previsao.serieAte`, usar `Previsao.escolherMelhor(serieAte)` (ou método escolhido), `Estoque.estoqueSeguranca(serieAte, z, leadTime)`, `Plano.calcularPlano({...})` com o primeiro forecast como semana seguinte; guardar em `state.previsoes` e `state.planos`.
 - `render()`: atualiza título/subtítulo, classes dos nav items, e chama `renderPainel()` (as outras abas ficam como placeholder até as Tasks 9–12).
 - `renderPainel()`: KPIs (estoque total, previsão total, animais a abater, compra, margem, capacidade), gráfico de demanda (últimas 12 semanas + 4 previstas), barras estoque atual vs meta, lista de alertas, card do fornecedor recomendado (via `Fornecedores.avaliar`), e um resumo do plano por produto.
 - Eventos: clique nos `[data-aba]`; mudança do `<select id="semana">` (preencher com 40–52 e "próxima").
@@ -968,7 +968,7 @@ Conteúdo:
 
 - Ler com `FileReader` (`readAsText`).
 - Chamar `CSV.importarDemanda`/`importarEstoque`.
-- Em sucesso: atualizar `state.dados.DEMANDA`/`ESTOQUE`, recalcular, salvar, renderizar, mostrar mensagem.
+- Em sucesso: aplicar a importação com `Importacao.aplicarDemanda`/`aplicarEstoque` (que atualiza `DEMANDA` ou `PRODUTOS[*].estoqueKg`), recalcular, salvar, renderizar, mostrar mensagem.
 - Em erro: **não alterar o estado**, mostrar `err.message` e manter os dados anteriores.
 
 - [ ] **Step 3: Persistência**

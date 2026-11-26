@@ -113,14 +113,32 @@ const DADOS = (() => {
 
   function dadosValidos(d) {
     if (!d || !Array.isArray(d.PRODUTOS) || d.PRODUTOS.length === 0) return false;
-    if (!d.PRODUTOS.every((p) => p && typeof p.id === "string" &&
-      Number.isFinite(Number(p.estoqueKg)) && Number.isFinite(Number(p.precoVendaKg)))) return false;
+    const camposNumericos = [
+      "kgCarcacaAnimal", "precoVendaKg", "custoCompraKg", "custoAbateKg",
+      "estoqueKg", "estoqueMinKg", "capacidadeAbateAnimais",
+      "capacidadeCamaraKg", "coberturaSemanas",
+    ];
+    if (!d.PRODUTOS.every((p) => p && typeof p.id === "string" && typeof p.nome === "string" &&
+      camposNumericos.every((campo) => Number.isFinite(Number(p[campo])) && Number(p[campo]) >= 0) &&
+      Number(p.kgCarcacaAnimal) > 0)) return false;
+
     if (!d.DEMANDA || !Array.isArray(d.DEMANDA.caprino) || !Array.isArray(d.DEMANDA.ovino)) return false;
     const n = d.DEMANDA.caprino.length;
     if (n === 0 || d.DEMANDA.ovino.length !== n) return false;
     if (!d.DEMANDA.caprino.every((v) => Number.isFinite(v) && v >= 0)) return false;
     if (!d.DEMANDA.ovino.every((v) => Number.isFinite(v) && v >= 0)) return false;
-    if (d.DEMANDA.semanas && (!Array.isArray(d.DEMANDA.semanas) || d.DEMANDA.semanas.length !== n)) return false;
+    if (d.DEMANDA.semanas) {
+      if (!Array.isArray(d.DEMANDA.semanas) || d.DEMANDA.semanas.length !== n) return false;
+      if (!d.DEMANDA.semanas.every((w, i, arr) =>
+        Number.isInteger(w) && w > 0 && (i === 0 || w > arr[i - 1]))) return false;
+    }
+
+    if (d.FORNECEDORES) {
+      if (!Array.isArray(d.FORNECEDORES) || d.FORNECEDORES.length === 0) return false;
+      if (!d.FORNECEDORES.every((a) => a && typeof a.id === "string" && typeof a.nome === "string" &&
+        typeof a.conformidadeSanitaria === "boolean" &&
+        Number.isFinite(Number(a.precoKgVivo)) && Number(a.precoKgVivo) >= 0)) return false;
+    }
     return true;
   }
 

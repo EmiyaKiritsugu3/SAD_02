@@ -36,7 +36,7 @@ fornecedor recomendado.
 
 **Posicionamento (auditoria de mercado):** o SeridóFrigo **não é um ERP** nem um
 APS enterprise. É uma **camada de decisão semanal** para pequenos frigoríficos
-que hoje usam planilha ou um ERP básico. Importa dados (CSV/JSON) e entrega
+que hoje usam planilha ou um ERP básico. Importa dados CSV e entrega
 previsão, plano, cenários e ranking de fornecedores. A análise completa está em
 `docs/auditoria-mercado.md`.
 
@@ -50,9 +50,10 @@ previsão, plano, cenários e ranking de fornecedores. A análise completa está
   classificação ABC (se o tempo permitir).
 - Plano semanal heurístico: previsão + estoque meta − estoque atual, convertido
   em animais, com limites de capacidade de abate e câmara fria.
-- Módulo AHP de fornecedores: 4 critérios, 3 fornecedores, razão de
-  consistência (CR), ranking e recomendação. Conformidade sanitária entra como
-  requisito eliminatório (componente de conhecimento).
+- Módulo AHP de fornecedores: 4 critérios, 3 fornecedores ranqueados + 1
+  candidato informal excluído pelo gate sanitário, razão de consistência (CR),
+  ranking e recomendação. Conformidade sanitária entra como requisito
+  eliminatório (componente de conhecimento).
 - Cenários de sensibilidade: demanda, preço de venda e capacidade.
 - Página de dados e premissas com fontes públicas, avisos e distinção entre
   dado observado e estimativa.
@@ -165,7 +166,9 @@ SAD_02/
 │   ├── plano.js          # plano semanal e cenários
 │   ├── fornecedores.js   # modelo AHP do domínio
 │   ├── csv.js            # importação simples de demanda/estoque
-│   └── app.js            # UI, gráficos, localStorage
+│   ├── importacao.js     # aplicação das importações ao estado
+│   ├── charts.js         # gráficos SVG
+│   └── app.js            # UI, localStorage
 ├── test/
 │   ├── ahp.test.js
 │   ├── previsao.test.js

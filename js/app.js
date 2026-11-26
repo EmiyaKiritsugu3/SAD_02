@@ -58,6 +58,7 @@ const App = (() => {
         parametros: state.parametros,
         cenario: state.cenario,
         planoAvancado: state.planoAvancado,
+        semanaAtual: state.semanaAtual,
         ahp: state.ahp,
       }));
     } catch (_) { /* localStorage indisponível */ }
@@ -91,7 +92,10 @@ const App = (() => {
         state.ahp = salvo.ahp;
       }
       const semanas = state.dados.DEMANDA.semanas || [];
-      if (semanas.length > 0 && !semanas.includes(state.semanaAtual)) {
+      const semanaSalva = Number(salvo.semanaAtual);
+      if (Number.isInteger(semanaSalva) && semanas.includes(semanaSalva)) {
+        state.semanaAtual = semanaSalva;
+      } else if (semanas.length > 0 && !semanas.includes(state.semanaAtual)) {
         state.semanaAtual = semanas[semanas.length - 1];
       }
     } catch (_) { /* estado corrompido: usa defaults */ }
@@ -497,6 +501,7 @@ const App = (() => {
     const rotuloAlerta = {
       capacidade: "Capacidade", camara: "Câmara fria", ruptura: "Ruptura",
       "estoque-minimo": "Estoque mínimo", "estoque-excedente": "Excedente",
+      "demanda-zero": "Demanda zero",
     };
 
     const campoNumero = (rotulo, nome, valor, step, produtoId, extra = "") => `
@@ -760,8 +765,11 @@ const App = (() => {
     const cr = resultado.criterios?.CR || 0;
     const alternativas = state.dados.FORNECEDORES || Fornecedores.ALTERNATIVAS;
     const conformes = alternativas.filter((a) => a.conformidadeSanitaria);
+    const conformesOrdenados = Fornecedores.ORDEM_CANONICA
+      .map((id) => conformes.find((a) => a.id === id))
+      .filter(Boolean);
     const nomesCrit = Fornecedores.CRITERIOS.map((c) => c.nome);
-    const nomesAlt = conformes.map((a) => a.nomeCurto || a.nome);
+    const nomesAlt = conformesOrdenados.map((a) => a.nomeCurto || a.nome);
     const criteriosAlternativas = resultado.criteriosAlternativas || {};
 
     const pesosItens = Fornecedores.CRITERIOS.map((c, i) => ({ rotulo: c.nome, valor: pesos[i] || 0 }));

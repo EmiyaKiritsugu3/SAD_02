@@ -768,7 +768,7 @@
         <div class="sad-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
           <div class="cartao sad-card"><span class="simbolo">01</span><h3>Dados</h3><p>IBGE, Embrapa/Cepea e CSV do frigorífico. Rebanho, preços, custos, demanda e estoque.</p></div>
           <div class="cartao sad-card"><span class="simbolo">02</span><h3>Modelos</h3><p>Previsão, estoque de segurança, plano semanal, cenários e AHP de fornecedores.</p></div>
-          <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Gate sanitário, capacidade de abate, câmara fria, estoque mínimo e validade.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Gate sanitário, capacidade de abate, câmara fria e estoque mínimo.</p></div>
           <div class="cartao sad-card"><span class="simbolo">04</span><h3>Interface</h3><p>Painel, previsão, plano, ranking de fornecedores e página de dados e premissas.</p></div>
         </div>
         <div class="fluxo-sad"><span>Dados</span><b>→</b><span>Modelos</span><b>→</b><span>Decisão</span><b>→</b><span>Interface</span></div>
@@ -1010,7 +1010,11 @@
 
       function mostrar(indice) {
         atual = Math.max(0, Math.min(total - 1, indice));
-        slides.forEach((slide, i) => slide.classList.toggle("ativo", i === atual));
+        slides.forEach((slide, i) => {
+          const ativo = i === atual;
+          slide.classList.toggle("ativo", ativo);
+          slide.setAttribute("aria-hidden", String(!ativo));
+        });
         barra.style.width = `${((atual + 1) / total) * 100}%`;
         const numero = slides[atual].querySelector(".slide-numero");
         if (numero) numero.textContent = `${String(atual + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;

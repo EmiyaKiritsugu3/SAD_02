@@ -141,16 +141,23 @@ auditabilidade nem ranking de fornecedores.
 semanal para pequenos frigoríficos**, e incluir a análise competitiva nos slides.
 Não expandir para CRUD, rastreabilidade, fiscal ou otimização de cortes.
 
-## 6. Ajustes recomendados na spec
+## 6. O que foi implementado e o que fica para depois
 
-1. Incluir **importação CSV** de demanda e estoque como must-have simples — é a
-   prova de que o SAD é uma camada sobre os dados existentes.
-2. Incluir um **slide de análise competitiva** com o mapa ERP × APS × planilha.
-3. Reforçar no README e nos slides: "não substitui o ERP; decide em cima dele".
-4. Manter o AHP como módulo de compra, com gate sanitário.
-5. Não adicionar: rastreabilidade SIF, NF-e, balanças, CRUD completo, otimização
-   de cortes, LP/Simplex. Isso fica como trabalho futuro.
-6. Se sobrar tempo: ABC e regressão; nunca em detrimento do núcleo.
+**Implementado no MVP:**
+
+1. Importação CSV de demanda e estoque, com validação e preservação do estado.
+2. Slide de análise competitiva com o mapa ERP × APS × planilha.
+3. Posicionamento “não substitui o ERP; decide em cima dele” no README e nos slides.
+4. AHP como módulo de compra, com CR por critério e gate sanitário.
+5. Regressão linear, cenários e proveniência dinâmica dos dados.
+
+**Próximos passos:**
+
+- Expor a classificação ABC na interface.
+- Importar o histórico real de um frigorífico e validar o backtest.
+- Adicionar mix de cortes e programação linear.
+- Integrar ao ERP/planilha existente via CSV/API.
+- Evoluir para multi-usuário/cloud e validação em campo.
 
 ## 7. Fontes consultadas
 

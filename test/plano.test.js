@@ -53,8 +53,8 @@ test("demanda zero retorna zeros, não negativos", () => {
 
 test("estoque negativo é tratado como zero", () => {
   const r = Plano.calcularPlano({ ...base, estoqueAtualKg: -100 });
-  assert.ok(r.estoqueFinalKg >= 0);
-  assert.ok(r.animaisAbatidos >= 0);
+  assert.equal(r.animaisAbatidos, 90);
+  assert.equal(r.estoqueFinalKg, 434);
 });
 
 test("capacidade e câmara juntas não geram produção negativa", () => {

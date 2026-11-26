@@ -26,11 +26,23 @@ test("ranking esperado: Boa Vista primeiro", () => {
 });
 
 test("CR alto gera alerta, mas não quebra", () => {
-  const inconsistente = [[1, 9, 1 / 9], [1 / 9, 1, 9], [9, 1 / 9, 1]];
+  const inconsistente = [[1, 9, 1 / 9, 1], [1 / 9, 1, 9, 1], [9, 1 / 9, 1, 1], [1, 1, 1, 1]];
   const r = F.avaliar({ matrizCriterios: inconsistente, matrizesAlternativas: F.MATRIZES_ALTERNATIVAS, alternativas: F.ALTERNATIVAS });
   assert.ok(r.criterios.CR > 0.1);
   assert.ok(r.alertas.some(a => a.tipo === "consistencia"));
   assert.equal(r.ranking.length, 3);
+});
+
+test("ranking mapeia fornecedores por ID mesmo fora de ordem", () => {
+  const alts = [F.ALTERNATIVAS[2], F.ALTERNATIVAS[0], F.ALTERNATIVAS[1], F.ALTERNATIVAS[3]];
+  const base = F.avaliar({ matrizCriterios: F.MATRIZ_CRITERIOS, matrizesAlternativas: F.MATRIZES_ALTERNATIVAS, alternativas: F.ALTERNATIVAS });
+  const reorder = F.avaliar({ matrizCriterios: F.MATRIZ_CRITERIOS, matrizesAlternativas: F.MATRIZES_ALTERNATIVAS, alternativas: alts });
+  assert.equal(reorder.ranking[0].id, "boa-vista");
+  for (const id of ["boa-vista", "cooperativa", "uaua"]) {
+    const a = base.ranking.find((x) => x.id === id).score;
+    const b = reorder.ranking.find((x) => x.id === id).score;
+    assert.ok(Math.abs(a - b) < 1e-9, `${id}: ${a} != ${b}`);
+  }
 });
 
 test("CR alto em matriz de alternativa gera alerta", () => {

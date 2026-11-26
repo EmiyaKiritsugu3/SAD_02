@@ -20,7 +20,8 @@ test("cobertura em semanas", () => {
 });
 
 test("classificação ABC", () => {
-  const r = E.classificacaoABC([{ id: "a", receita: 80 }, { id: "b", receita: 15 }, { id: "c", receita: 5 }]);
+  const r = E.classificacaoABC([{ id: "c", receita: 5 }, { id: "a", receita: 80 }, { id: "b", receita: 15 }]);
+  assert.deepEqual(r.map(x => x.id), ["a", "b", "c"]);
   assert.deepEqual(r.map(x => x.classe), ["A", "B", "C"]);
   assert.equal(r[2].acumulado, 1);
 });

@@ -9,6 +9,8 @@ const Fornecedores = (() => {
     { id: "confiabilidade", nome: "Confiabilidade", descricao: "Histórico de cumprimento e regularidade." },
   ];
 
+  const ORDEM_CANONICA = ["boa-vista", "cooperativa", "uaua"];
+
   const ALTERNATIVAS = [
     {
       id: "boa-vista", nome: "Fazenda Boa Vista", nomeCurto: "Boa Vista", cidade: "Caicó/RN",
@@ -64,6 +66,14 @@ const Fornecedores = (() => {
     const pesosPorCriterio = {};
     const criteriosAlternativas = {};
     const alertas = [];
+    const idsConformes = conformes.map((a) => a.id);
+    if (conformes.length !== ORDEM_CANONICA.length ||
+        idsConformes.some((id) => !ORDEM_CANONICA.includes(id))) {
+      alertas.push({
+        tipo: "configuracao",
+        mensagem: "Lista de fornecedores conformes fora do conjunto canônico; o ranking usa o ID de cada fornecedor.",
+      });
+    }
     for (const c of CRITERIOS) {
       const M = mAlt[c.id];
       const res = M ? Motor.calcAHP(M) : null;
@@ -78,14 +88,16 @@ const Fornecedores = (() => {
     }
 
     const nCrit = Math.min(criterios.weights.length, CRITERIOS.length);
-    const pontuados = conformes.map((alt, i) => {
+    const pontuados = conformes.map((alt) => {
+      const indice = ORDEM_CANONICA.indexOf(alt.id);
+      if (indice < 0) return null;
       let score = 0;
       for (let j = 0; j < nCrit; j++) {
-        const pesoAlt = pesosPorCriterio[CRITERIOS[j].id][i] ?? 0;
+        const pesoAlt = pesosPorCriterio[CRITERIOS[j].id][indice] ?? 0;
         score += criterios.weights[j] * pesoAlt;
       }
       return { ...alt, score, rank: 0 };
-    });
+    }).filter(Boolean);
 
     const ranking = [...pontuados]
       .sort((a, b) => b.score - a.score)
@@ -108,7 +120,7 @@ const Fornecedores = (() => {
   }
 
   return {
-    CRITERIOS, ALTERNATIVAS, MATRIZ_CRITERIOS, MATRIZES_ALTERNATIVAS,
+    CRITERIOS, ALTERNATIVAS, MATRIZ_CRITERIOS, MATRIZES_ALTERNATIVAS, ORDEM_CANONICA,
     avaliar, restaurarExemplo,
   };
 })();

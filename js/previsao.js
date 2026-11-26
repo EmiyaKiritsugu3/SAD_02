@@ -2,7 +2,7 @@
 const Previsao = (() => {
   function mediaMovel(serie, janela) {
     if (!serie || serie.length === 0) return 0;
-    const n = Math.min(Math.max(1, Number(janela) || 1), serie.length);
+    const n = Math.min(Math.max(1, Math.floor(Number(janela) || 1)), serie.length);
     const ultimos = serie.slice(-n);
     return ultimos.reduce((a, b) => a + b, 0) / n;
   }
@@ -28,7 +28,7 @@ const Previsao = (() => {
     }
     const slope = denominador === 0 ? 0 : numerador / denominador;
     const intercept = mediaY - slope * mediaX;
-    return { slope, intercept, prever: (h = 1) => intercept + slope * (n + h) };
+    return { slope, intercept, prever: (h = 1) => Math.max(0, intercept + slope * (n + h)) };
   }
 
   function prever(serie, metodo, params = {}, h = 4) {

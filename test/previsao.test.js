@@ -11,6 +11,10 @@ test("média móvel com série curta não retorna NaN", () => {
   assert.equal(P.mediaMovel([], 4), 0);
 });
 
+test("média móvel normaliza janela fracionária", () => {
+  assert.equal(P.mediaMovel([10, 20, 30, 40], 2.7), 35);
+});
+
 test("SES de série constante é a constante", () => {
   assert.equal(P.suavizacaoExponencial([100, 100, 100], 0.3), 100);
 });
@@ -19,6 +23,11 @@ test("regressão linear projeta série linear", () => {
   const r = P.regressaoLinear([10, 20, 30, 40]);
   assert.ok(Math.abs(r.prever(1) - 50) < 1e-9);
   assert.ok(Math.abs(r.prever(4) - 80) < 1e-9);
+});
+
+test("regressão não projeta demanda negativa", () => {
+  const r = P.regressaoLinear([100, 80, 60, 40]);
+  assert.equal(r.prever(4), 0);
 });
 
 test("MAE e MAPE", () => {

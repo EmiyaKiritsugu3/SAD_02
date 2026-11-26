@@ -22,6 +22,7 @@ test("importarDemanda ordena semanas fora de ordem", () => {
   const r = CSV.importarDemanda("semana;caprino;ovino\n2;710;910\n1;700;900");
   assert.deepEqual(r.semanas, [1, 2]);
   assert.deepEqual(r.caprino, [700, 710]);
+  assert.deepEqual(r.ovino, [900, 910]);
 });
 
 test("importarDemanda rejeita semana inválida ou duplicada", () => {
@@ -32,6 +33,10 @@ test("importarDemanda rejeita semana inválida ou duplicada", () => {
 test("importarEstoque lê o estoque atual", () => {
   const r = CSV.importarEstoque("produto;estoque_kg\ncaprino;600\novino;800");
   assert.deepEqual(r, { caprino: 600, ovino: 800 });
+});
+
+test("importarEstoque rejeita produto duplicado", () => {
+  assert.throws(() => CSV.importarEstoque("produto;estoque_kg\ncaprino;600\ncaprino;700\novino;800"));
 });
 
 test("linha inválida lança erro e não retorna dados parciais", () => {

@@ -47,7 +47,7 @@ button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 
 :focus-visible {
-  outline: 3px solid var(--gold);
+  outline: 3px solid var(--terracotta-dark);
   outline-offset: 2px;
 }
 
@@ -374,7 +374,7 @@ select:hover, input:hover { border-color: var(--gold); }
 
 /* ---------- Alerts ---------- */
 .lista-alertas { display: flex; flex-direction: column; gap: 8px; }
-.alerta {
+div.alerta {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -384,12 +384,12 @@ select:hover, input:hover { border-color: var(--gold); }
   background: rgba(201, 154, 75, 0.1);
   font-size: 0.84rem;
 }
-.alerta strong { min-width: 92px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.alerta.capacidade, .alerta.ruptura { border-left-color: var(--danger); background: rgba(163, 58, 46, 0.08); }
-.alerta.camara, .alerta.estoque-excedente { border-left-color: var(--gold); }
-.alerta.estoque-minimo { border-left-color: var(--terracotta); background: rgba(181, 82, 47, 0.08); }
-.alerta.demanda-zero { border-left-color: var(--terracotta); background: rgba(181, 82, 47, 0.08); }
-.alerta.ok { border-left-color: var(--ok); background: rgba(79, 107, 69, 0.08); }
+div.alerta strong { min-width: 92px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+div.alerta.capacidade, div.alerta.ruptura { border-left-color: var(--danger); background: rgba(163, 58, 46, 0.08); }
+div.alerta.camara, div.alerta.estoque-excedente { border-left-color: var(--gold); }
+div.alerta.estoque-minimo { border-left-color: var(--terracotta); background: rgba(181, 82, 47, 0.08); }
+div.alerta.demanda-zero { border-left-color: var(--terracotta); background: rgba(181, 82, 47, 0.08); }
+div.alerta.ok { border-left-color: var(--ok); background: rgba(79, 107, 69, 0.08); }
 
 /* ---------- Supplier ranking ---------- */
 .ranking-mini { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }

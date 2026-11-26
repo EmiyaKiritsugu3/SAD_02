@@ -197,7 +197,7 @@ sanitário.
 
 - Aplicação estática (`index.html`) com painel, previsão, plano, fornecedores e
   dados.
-- 51 testes com `node:test`.
+- 57 testes com `node:test`.
 - Slides (`slides.html`, `slides.pdf`) e roteiro (`slides/roteiro.md`).
 - Dados públicos documentados + série de demanda ilustrativa + importação CSV.
 - Spec, plano e auditoria em `docs/`.

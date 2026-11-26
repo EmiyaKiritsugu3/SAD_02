@@ -91,9 +91,12 @@ const CSV = (() => {
     if (iProduto < 0 || iEstoque < 0) throw new Error("CSV de estoque inválido");
 
     const estoque = { caprino: null, ovino: null };
+    const vistos = new Set();
     for (const linha of linhas.slice(1)) {
       const produto = String(linha[iProduto] ?? "").trim().toLowerCase();
       if (produto !== "caprino" && produto !== "ovino") continue;
+      if (vistos.has(produto)) throw new Error("CSV de estoque inválido");
+      vistos.add(produto);
       const valor = numero(linha[iEstoque]);
       if (!Number.isFinite(valor) || valor < 0) throw new Error("CSV de estoque inválido");
       estoque[produto] = valor;
