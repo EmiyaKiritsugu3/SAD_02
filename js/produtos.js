@@ -3,10 +3,13 @@ const Produtos = (() => {
   const UNIDADES = ["un", "kg", "L"];
 
   function slug(texto) {
-    const limpo = String(texto ?? "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+    const normalizado = String(texto ?? "").normalize("NFD");
+    let limpo = "";
+    for (const caractere of normalizado) {
+      const codigo = caractere.codePointAt(0);
+      if (codigo >= 0x0300 && codigo <= 0x036f) continue;
+      limpo += caractere.toLowerCase();
+    }
     let saida = "";
     for (const caractere of limpo) {
       const valido = (caractere >= "a" && caractere <= "z") || (caractere >= "0" && caractere <= "9");
@@ -17,7 +20,6 @@ const Produtos = (() => {
       }
     }
     while (saida.endsWith("-")) saida = saida.slice(0, -1);
-    return saida;
     return saida;
   }
 

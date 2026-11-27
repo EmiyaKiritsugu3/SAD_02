@@ -3,6 +3,7 @@ const Estado = (() => {
   const CHAVE = "mercadinho-serido:v1";
   const UNIDADES = new Set(["un", "kg", "L"]);
   const AVISO = "Não foi possível carregar os dados salvos. Carregamos o exemplo.";
+  let ultimoErroSalvar = null;
 
   const PRODUTOS_EXEMPLO = [
     { id: "p-arroz", nome: "Arroz 5 kg", unidade: "un", custo: 22.5, preco: 27.9, estoqueAtual: 8, estoqueMinimo: 4, base: 40 },
@@ -127,8 +128,9 @@ const Estado = (() => {
       const salvo = JSON.parse(bruto);
       if (!validar(salvo)) return { estado: estadoExemplo(), aviso: AVISO };
       return { estado: salvo, aviso: null };
-    } catch (_) { // NOSONAR — localStorage indisponível ou JSON inválido: cai no exemplo com aviso.
-      return { estado: estadoExemplo(), aviso: AVISO };
+    } catch (erro) {
+      const detalhe = erro instanceof Error ? erro.message : "erro desconhecido";
+      return { estado: estadoExemplo(), aviso: `${AVISO} (${detalhe})` };
     }
   }
 
@@ -137,7 +139,8 @@ const Estado = (() => {
       if (!storage || typeof storage.setItem !== "function") return false;
       storage.setItem(CHAVE, JSON.stringify(estado));
       return true;
-    } catch (_) { // NOSONAR — quota ou armazenamento indisponível: não interrompe a interface.
+    } catch (erro) {
+      ultimoErroSalvar = erro;
       return false;
     }
   }
@@ -145,6 +148,7 @@ const Estado = (() => {
   return {
     CHAVE, estadoVazio, estadoExemplo, validar, carregar, salvar,
     normalizarSemana, adicionarSemanas,
+    get ultimoErroSalvar() { return ultimoErroSalvar; },
   };
 })();
 
