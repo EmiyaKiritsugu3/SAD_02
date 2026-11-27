@@ -747,7 +747,7 @@
           <div class="fluxo">
             <div class="fluxo-item"><span class="n">1</span><div><strong>O que vendeu?</strong><small>Histórico diário por produto, com visão por dia, semana, mês ou ano.</small></div></div>
             <div class="fluxo-item"><span class="n">2</span><div><strong>Quanto vai vender?</strong><small>Previsão automática da próxima semana, com erro medido.</small></div></div>
-            <div class="fluxo-item"><span class="n">3</span><div><strong>Quanto comprar?</strong><small>Previsão + estoque mínimo − estoque atual, por produto.</small></div></div>
+            <div class="fluxo-item"><span class="n">3</span><div><strong>Quanto comprar?</strong><small>Previsão + mínimo (1 dia) − estoque atual, por produto.</small></div></div>
             <div class="gap"><strong>Saída:</strong> lista de compras com quantidade e custo estimado.</div>
           </div>
         </div>
@@ -764,14 +764,14 @@
         <div class="sad-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
           <div class="cartao sad-card"><span class="simbolo">01</span><h3>Dados</h3><p>Produtos, vendas diárias, estoque atual e estoque mínimo.</p></div>
           <div class="cartao sad-card"><span class="simbolo">02</span><h3>Modelos</h3><p>Média móvel, suavização exponencial e regressão; backtest de 4 semanas.</p></div>
-          <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Unidade de medida, estoque mínimo e a regra de compra.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Unidade de medida, cobertura do estoque mínimo e a regra de compra.</p></div>
           <div class="cartao sad-card"><span class="simbolo">04</span><h3>Interface</h3><p>Compras, Previsão, Vendas e Produtos. A decisão na primeira tela.</p></div>
         </div>
         <div class="fluxo-sad"><span>Dados</span><b>→</b><span>Modelos</span><b>→</b><span>Decisão</span><b>→</b><span>Interface</span></div>
         <div class="citacao" style="margin-top: 16px; font-size: clamp(0.9rem, 1.35vw, 1.2rem);">O SAD não substitui o caixa ou o ERP: ele consome os dados e devolve decisão.</div>
       </div>
       <div class="rodape"><span>Componentes clássicos de SAD (Turban; Sprague & Watson).</span><span>O conhecimento é explícito: regras, não caixa-preta.</span></div>
-      <div class="notas">Arquitetura: os quatro componentes do SAD. O diferencial é o conhecimento explícito: a unidade, o estoque mínimo e a regra de compra entram no cálculo, não ficam só no discurso.</div>
+      <div class="notas">Arquitetura: os quatro componentes do SAD. O diferencial é o conhecimento explícito: a unidade, a cobertura do mínimo e a regra de compra entram no cálculo, não ficam só no discurso.</div>
     </section>
 
     <section class="slide" data-slide="5">
@@ -814,9 +814,10 @@
           <div>
             <div class="cartao" style="padding: clamp(16px, 2vw, 24px);">
               <span class="tag terra">Regra</span>
-              <code style="display:block; margin-top: 12px; padding: 14px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: clamp(0.68rem, 1.05vw, 0.86rem); line-height: 1.6; white-space: pre-wrap; color: var(--ink);">necessidade = max(0, previsão + mínimo − estoque)
-sugestão  = un ? arredonda para cima : 1 casa
-custo     = sugestão × custo unitário</code>
+              <code style="display:block; margin-top: 12px; padding: 14px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: clamp(0.68rem, 1.05vw, 0.86rem); line-height: 1.6; white-space: pre-wrap; color: var(--ink);">mínimo     = previsão ÷ 7 × cobertura   (ou manual)
+necessidade = max(0, previsão + mínimo − estoque)
+sugestão   = un ? arredonda para cima : 1 casa
+custo      = sugestão × custo unitário</code>
             </div>
             <div class="citacao" style="margin-top: 16px; font-size: clamp(0.85rem, 1.2vw, 1rem);">“Simples o bastante para o dono confiar; explícito o bastante para a banca auditar.”</div>
           </div>
@@ -827,18 +828,18 @@ custo     = sugestão × custo unitário</code>
               <tbody>
                 <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Previsão da próxima semana</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;"><strong>39,1 un</strong></td></tr>
                 <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Estoque atual</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">8 un</td></tr>
-                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Estoque mínimo</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">4 un</td></tr>
-                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Necessidade</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">35,1 un</td></tr>
-                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Compra sugerida</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;"><strong style="color: var(--terracotta-dark);">36 un</strong></td></tr>
-                <tr><td style="padding: 9px 10px; color: var(--muted);">Custo estimado</td><td style="padding: 9px 10px; text-align:right;"><strong>R$ 810,00</strong></td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Mínimo (1 dia, auto)</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">5,6 un</td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Necessidade</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">36,7 un</td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Compra sugerida</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;"><strong style="color: var(--terracotta-dark);">37 un</strong></td></tr>
+                <tr><td style="padding: 9px 10px; color: var(--muted);">Custo estimado</td><td style="padding: 9px 10px; text-align:right;"><strong>R$ 832,50</strong></td></tr>
               </tbody>
             </table>
             <p style="margin-top: 12px; color: var(--muted); font-size: 0.78rem; line-height: 1.5;">O dono decide a compra final. O app é uma sugestão; o estoque é atualizado manualmente.</p>
           </div>
         </div>
       </div>
-      <div class="rodape"><span>Unidade “un” arredonda para cima; kg e L usam uma casa decimal.</span><span>Sem lead time, validade ou orçamento no MVP.</span></div>
-      <div class="notas">Regra: previsão + estoque mínimo menos estoque atual. No exemplo do arroz: 39,1 + 4 − 8 = 35,1; arredonda para 36 unidades; a R$ 22,50, custa R$ 810,00. O dono decide a compra final.</div>
+      <div class="rodape"><span>Mínimo automático: previsão ÷ 7 × cobertura; manual sobrescreve.</span><span>Sem lead time, validade ou orçamento no MVP.</span></div>
+      <div class="notas">Regra: previsão + mínimo menos estoque atual. No exemplo do arroz: mínimo automático 39,1 ÷ 7 = 5,6; 39,1 + 5,6 − 8 = 36,7; arredonda para 37 unidades; a R$ 22,50, custa R$ 832,50. O dono decide a compra final.</div>
     </section>
 
     <section class="slide" data-slide="7">
@@ -850,7 +851,7 @@ custo     = sugestão × custo unitário</code>
         <img class="shot" src="slides/img/app-compras.png" alt="Tela de Compras do Mercadinho Seridó com a lista de compras sugerida" style="max-height: 58vh; width: auto; max-width: 100%; margin: 0 auto;">
       </div>
       <div class="rodape"><span><em>Demo ao vivo:</em> Compras → Previsão → Vendas → Produtos.</span><span>O dono vê a conta e o custo antes de comprar.</span></div>
-      <div class="notas">Demonstração: abrir Compras, mostrar a lista e o custo total; ir para Previsão e trocar o método, a semana de referência e os produtos dos gráficos; seguir para Vendas e mostrar o lançamento do dia e os períodos; finalizar em Produtos com o cadastro e o exemplo/limpar.</div>
+      <div class="notas">Demonstração: abrir Compras, mostrar a lista, a cobertura do mínimo (1 dia) e o custo total; ir para Previsão e trocar o método, a semana de referência e o produto do gráfico; seguir para Vendas e mostrar o lançamento do dia e os períodos; finalizar em Produtos com o cadastro e o exemplo/limpar.</div>
     </section>
 
     <section class="slide" data-slide="8">
@@ -865,9 +866,9 @@ custo     = sugestão × custo unitário</code>
               <li>4 abas: Compras, Previsão, Vendas e Produtos.</li>
               <li>Vendas diárias com visão por dia/semana/mês/ano.</li>
               <li>Previsão em 52 + 4, com método, erro e backtest na tela.</li>
-              <li>Compra sugerida com quantidade e custo.</li>
+              <li>Compra sugerida com mínimo automático (1 dia) e override manual.</li>
               <li>Exemplo rotulado, dados no navegador.</li>
-              <li>75 testes e deploy no GitHub Pages.</li>
+              <li>77 testes e deploy no GitHub Pages.</li>
             </ul>
           </div>
           <div class="cartao" style="padding: clamp(16px, 2vw, 24px);">

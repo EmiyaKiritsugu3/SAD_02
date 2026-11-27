@@ -30,9 +30,25 @@ Aproximar o Mercadinho Seridó da leitura de SAD do projeto legado (frigorífico
 - Quatro abas navegáveis, com o visual de sidebar + topbar do legado.
 - Previsão com 52 opções de semana, um gráfico de 52 + 4, 10 produtos na tabela de erro e 10 produtos × 4 semanas na tabela de próximas semanas.
 - Troca de método e de produto recalcula a tela; o método escolhido muda a previsão de Compras.
-- Exemplo com 362 dias e 52 semanas; Compras em **R$ 2.319,44**.
+- Exemplo com 362 dias e 52 semanas; Compras em **R$ 2.350,10**.
 - `npm test` verde, smoke em 1440 e 360 px sem overflow e slides/PDF atualizados.
 
 ## Atualização — um gráfico
 
 Com 10 produtos, dois gráficos lado a lado deixavam o histórico de 52 semanas pequeno e duplicavam o controle de produto. A aba passou a ter **um único gráfico largo** de 52 + 4, com um produto selecionável. A tabela de erro e a de próximas semanas continuam mostrando todos os produtos.
+
+## Atualização — estoque mínimo automático
+
+O mínimo deixou de ser um número fixo. A regra passou a ser:
+
+```text
+mínimo = estoque mínimo manual > 0
+         ? estoque mínimo manual
+         : (previsão da semana ÷ 7) × dias de cobertura
+```
+
+- **Cobertura:** controle em Compras, de 1 a 7 dias, padrão 1; persistido em `politica.diasCobertura` no estado v2.
+- **Override:** o campo “Estoque mínimo manual” no produto substitui o automático quando maior que 0; 0 significa automático.
+- **Exemplo:** os 10 produtos usam 0 (automático); Compras em **R$ 2.350,10**.
+- **Transparência:** a coluna Mínimo mostra `auto`/`manual` e o “Como calculamos” mostra o valor e a origem.
+- **Fora de escopo:** erro do modelo no mínimo, lead time, validade e cobertura por produto.
