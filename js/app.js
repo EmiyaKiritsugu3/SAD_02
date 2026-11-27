@@ -3,12 +3,12 @@ const App = (() => {
   const state = {
     aba: "compras",
     produtos: [],
-    semanas: [],
+    dias: [],
     exemplo: false,
     produtoSelecionado: null,
-    semanaSelecionada: Vendas.normalizarSemana(new Date()),
-    mesSelecionado: null,
-    visaoMensal: false,
+    dataSelecionada: Vendas.normalizarDia(new Date()),
+    periodo: "semana",
+    periodoReferencia: Vendas.normalizarDia(new Date()),
     filtro: "",
     produtoEditando: null,
     erroPersistencia: null,
@@ -92,7 +92,7 @@ const App = (() => {
   }
 
   function salvar() {
-    const ok = Estado.salvar({ versao: 1, produtos: state.produtos, semanas: state.semanas, exemplo: state.exemplo });
+    const ok = Estado.salvar({ versao: 2, produtos: state.produtos, dias: state.dias, exemplo: state.exemplo });
     state.erroPersistencia = ok ? null : "Não foi possível gravar os dados neste navegador. As alterações valem só nesta sessão.";
     atualizarAvisoPersistencia();
     return ok;
@@ -106,19 +106,13 @@ const App = (() => {
 
   function aplicarEstado(estado) {
     state.produtos = Array.isArray(estado.produtos) ? estado.produtos : [];
-    state.semanas = Array.isArray(estado.semanas) ? estado.semanas : [];
+    state.dias = Array.isArray(estado.dias) ? estado.dias : [];
     state.exemplo = Boolean(estado.exemplo);
     if (!state.produtos.some((p) => p.id === state.produtoSelecionado)) {
       state.produtoSelecionado = state.produtos[0]?.id ?? null;
     }
-    if (state.semanas.length > 0) {
-      const meses = Vendas.resumoMensal(state.semanas, state.produtos);
-      if (!meses.some((m) => m.mes === state.mesSelecionado)) {
-        state.mesSelecionado = meses.at(-1)?.mes ?? null;
-      }
-    } else {
-      state.mesSelecionado = null;
-    }
+    state.dataSelecionada = Vendas.normalizarDia(state.dataSelecionada || new Date());
+    state.periodoReferencia = Vendas.normalizarDia(state.periodoReferencia || state.dataSelecionada || new Date());
     state.produtoEditando = null;
   }
 
@@ -158,7 +152,7 @@ const App = (() => {
   function previsoesMap() {
     const mapa = {};
     for (const produto of state.produtos) {
-      const serie = Vendas.serieProduto(state.semanas, produto.id);
+      const serie = Vendas.serieSemanal(state.dias, produto.id);
       const prev = Previsao.paraSerie(serie.valores);
       mapa[produto.id] = { serie, prev, previsao: prev?.prev4?.[0] ?? null };
     }
@@ -207,8 +201,8 @@ const App = (() => {
     const total = Compras.total(itens);
     const semDados = Compras.semDados(itens);
     const hoje = Vendas.normalizarSemana(new Date());
-    const proxima = Vendas.proximaSemana(state.semanas);
-    const atrasada = Vendas.atrasada(Vendas.ultimaSemana(state.semanas), hoje);
+    const proxima = Vendas.proximaSemana(state.dias);
+    const atrasada = Vendas.atrasada(Vendas.ultimaSemana(state.dias), hoje);
     const filtro = normalizarBusca(state.filtro);
     const visiveis = itens.filter((item) => !filtro || normalizarBusca(item.produto.nome).includes(filtro));
 
@@ -242,8 +236,8 @@ const App = (() => {
         </tr>`;
     }).join("");
 
-    const avisoSemVendas = state.semanas.length === 0
-      ? `<div class="aviso"><strong>Sem vendas ainda.</strong> Cadastre a primeira semana para o app calcular a previsão e a compra.</div>`
+    const avisoSemVendas = state.dias.length === 0
+      ? `<div class="aviso"><strong>Sem vendas ainda.</strong> Cadastre o primeiro dia para o app calcular a previsão e a compra.</div>`
       : "";
     const avisoAtraso = atrasada
       ? `<div class="aviso"><strong>Última venda antiga.</strong> A compra é para a semana seguinte à última venda registrada (${fmtDataLonga(proxima)}). Atualize as vendas para uma previsão mais recente.</div>`
@@ -350,14 +344,19 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       </section>`;
   }
 
+  function periodoLabel(resumo, periodo) {
+    if (periodo === "dia") return fmtDataLonga(resumo.inicio);
+    if (periodo === "semana") return `${fmtData(resumo.inicio)} a ${fmtDataLonga(resumo.fim)}`;
+    if (periodo === "mes") return fmtMes(resumo.inicio.slice(0, 7));
+    return resumo.inicio.slice(0, 4);
+  }
+
   function renderVendas() {
     const app = document.getElementById("app");
     if (!app) return;
 
-    state.semanaSelecionada = Vendas.normalizarSemana(state.semanaSelecionada);
-
     if (state.produtos.length === 0) {
-      app.innerHTML = paginaHead("Rotina semanal", "Vendas", "Registre o que vendeu em cada semana.")
+      app.innerHTML = paginaHead("Rotina diária", "Vendas", "Registre o que vendeu em cada dia.")
         + estadoVazio(
           "Cadastre um produto primeiro",
           "As vendas são lançadas por produto. Cadastre pelo menos um produto para começar.",
@@ -367,14 +366,10 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       return;
     }
 
-    if (state.visaoMensal) {
-      renderMensal(app);
-      return;
-    }
-
-    const semana = state.semanas.find((s) => s.data === state.semanaSelecionada);
-    const valores = semana?.valores || {};
-    const ultima = Vendas.ultimaSemana(state.semanas);
+    state.dataSelecionada = Vendas.normalizarDia(state.dataSelecionada);
+    const dia = state.dias.find((d) => d.data === state.dataSelecionada);
+    const valores = dia?.valores || {};
+    const ultimo = Vendas.ultimoDia(state.dias);
     const linhas = state.produtos.map((produto) => {
       const passo = produto.unidade === "un" ? "1" : "0.1";
       return `
@@ -385,29 +380,41 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         </tr>`;
     }).join("");
 
-    const rotuloUltima = ultima
-      ? `Última venda<br><strong>${fmtDataLonga(ultima)}</strong>`
-      : "Nenhuma venda registrada";
+    const resumo = Vendas.resumoPeriodo(state.dias, state.produtos, state.periodo, state.periodoReferencia);
+    const opcoesPeriodo = [["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"], ["ano", "Ano"]]
+      .map(([valor, rotulo]) => `<option value="${valor}" ${state.periodo === valor ? "selected" : ""}>${rotulo}</option>`)
+      .join("");
+    const linhasResumo = state.produtos.map((produto) => {
+      const item = resumo.porProduto[produto.id] || { quantidade: 0, receita: 0 };
+      return `<tr>
+        <td><span class="produto-nome"><strong>${esc(produto.nome)}</strong><small>${esc(produto.unidade)}</small></span></td>
+        <td class="num">${fmtQtd(item.quantidade)} ${esc(produto.unidade)}</td>
+        <td class="num">${fmtBRL(item.receita)}</td>
+      </tr>`;
+    }).join("");
+    const produtosComVenda = state.produtos.filter((p) => (resumo.porProduto[p.id]?.quantidade || 0) > 0).length;
+    const rotuloUltimo = ultimo ? `Último dia<br><strong>${fmtDataLonga(ultimo)}</strong>` : "Nenhuma venda registrada";
 
     app.innerHTML = paginaHead(
-      "Rotina semanal",
+      "Rotina diária",
       "Vendas",
-      "Uma linha por produto. A previsão usa a última semana registrada.",
-      `<div class="semana-label">${rotuloUltima}</div>`,
+      "Lance o dia e consulte por período. A previsão e a compra usam a semana.",
+      `<div class="semana-label">${rotuloUltimo}</div>`,
     ) + `
       ${state.exemplo ? `<div class="aviso"><strong>Dados de exemplo.</strong> Edite ou limpe em Produtos para usar os seus.</div>` : ""}
       <section class="card" aria-labelledby="titulo-lancamento">
         <div class="card-head">
-          <div><h2 id="titulo-lancamento" tabindex="-1">Lançamento semanal</h2><p>Escolha a semana, preencha as quantidades e salve.</p></div>
-          <span class="badge ${semana ? "ok" : ""}">${semana ? "Semana registrada" : "Nova semana"}</span>
+          <div><h2 id="titulo-lancamento" tabindex="-1">Lançamento do dia</h2><p>Escolha o dia, preencha as quantidades e salve.</p></div>
+          <span class="badge ${dia ? "ok" : ""}">${dia ? "Dia registrado" : "Novo dia"}</span>
         </div>
         <div class="semana-barra">
-          <label class="campo">Semana de
-            <input id="semana-data" type="date" value="${state.semanaSelecionada}">
+          <label class="campo">Dia
+            <input id="dia-data" type="date" max="${Vendas.normalizarDia(new Date())}" value="${state.dataSelecionada}">
           </label>
           <div class="acoes">
-            <button class="botao secundario pequeno" type="button" data-acao="semana-anterior">← Anterior</button>
-            <button class="botao secundario pequeno" type="button" data-acao="semana-proxima">Próxima →</button>
+            <button class="botao secundario pequeno" type="button" data-acao="dia-anterior">← Dia anterior</button>
+            <button class="botao secundario pequeno" type="button" data-acao="hoje">Hoje</button>
+            <button class="botao secundario pequeno" type="button" data-acao="dia-proximo">Próximo dia →</button>
           </div>
         </div>
         <div class="tabela-wrap">
@@ -417,84 +424,34 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
           </table>
         </div>
         <div class="acoes">
-          <button class="botao" type="button" data-acao="salvar-semana">Salvar semana</button>
-          ${semana ? `<button class="botao perigo" type="button" data-acao="excluir-semana">Excluir semana</button>` : ""}
-          <button class="botao secundario" type="button" data-acao="alternar-mensal">Ver por mês</button>
+          <button class="botao" type="button" data-acao="salvar-dia">Salvar dia</button>
+          ${dia ? `<button class="botao perigo" type="button" data-acao="excluir-dia">Excluir dia</button>` : ""}
         </div>
-        <p class="nota">Quantidades vazias valem zero. Uma semana sem nenhum valor não é salva.</p>
-      </section>`;
-  }
-
-  function renderMensal(app) {
-    const resumo = Vendas.resumoMensal(state.semanas, state.produtos);
-    if (resumo.length === 0) {
-      app.innerHTML = paginaHead("Rotina semanal", "Vendas", "Resumo mensal das vendas.")
-        + estadoVazio(
-          "Nenhuma venda registrada",
-          "Lance algumas semanas para ver o resumo mensal.",
-          `<button class="botao" type="button" data-acao="alternar-mensal">Voltar para semanas</button>
-           <button class="botao secundario" type="button" data-acao="ir-vendas">Ir para Vendas</button>`,
-        );
-      return;
-    }
-
-    if (!resumo.some((m) => m.mes === state.mesSelecionado)) {
-      state.mesSelecionado = resumo.at(-1).mes;
-    }
-    const registro = resumo.find((m) => m.mes === state.mesSelecionado) || resumo.at(-1);
-    const opcoes = resumo.map((m) => `<option value="${m.mes}" ${m.mes === registro.mes ? "selected" : ""}>${esc(fmtMes(m.mes))}</option>`).join("");
-    const linhas = state.produtos.map((produto) => {
-      const dados = registro.porProduto[produto.id] || { quantidade: 0, receita: 0 };
-      return `<tr>
-        <td><span class="produto-nome"><strong>${esc(produto.nome)}</strong><small>${esc(produto.unidade)}</small></span></td>
-        <td class="num">${fmtQtd(dados.quantidade)} ${esc(produto.unidade)}</td>
-        <td class="num">${fmtBRL(dados.receita)}</td>
-      </tr>`;
-    }).join("");
-    const produtosComVenda = state.produtos.filter((p) => (registro.porProduto[p.id]?.quantidade || 0) > 0).length;
-    const meses = resumo.map((m) => {
-      const quantidadeProdutos = state.produtos.filter((p) => (m.porProduto[p.id]?.quantidade || 0) > 0).length;
-      return `<tr>
-        <td>${esc(fmtMes(m.mes))}</td>
-        <td class="num">${quantidadeProdutos}</td>
-        <td class="num">${fmtBRL(m.totalReceita)}</td>
-      </tr>`;
-    }).join("");
-
-    app.innerHTML = paginaHead(
-      "Rotina semanal",
-      "Vendas",
-      "Resumo mensal das vendas por produto.",
-      `<div class="semana-label">Receita do mês<br><strong>${fmtBRL(registro.totalReceita)}</strong></div>`,
-    ) + `
-      ${state.exemplo ? `<div class="aviso"><strong>Dados de exemplo.</strong> Edite ou limpe em Produtos para usar os seus.</div>` : ""}
-      <section class="card">
+        <p class="nota">Quantidades vazias valem zero. Um dia sem nenhum valor não é salvo.</p>
+      </section>
+      <section class="card" aria-labelledby="titulo-resumo">
         <div class="card-head">
-          <div><h2>Resumo do mês</h2><p>Quantidade e receita estimada por produto.</p></div>
-          <button class="botao secundario" type="button" data-acao="alternar-mensal">Ver por semana</button>
-        </div>
-        <div class="mensal-topo">
-          <label class="campo">Mês
-            <select id="mes-select">${opcoes}</select>
-          </label>
+          <div><h2 id="titulo-resumo">Resumo do período</h2><p>${esc(periodoLabel(resumo, state.periodo))}</p></div>
           <span class="badge">${produtosComVenda} produto(s) com venda</span>
+        </div>
+        <div class="semana-barra">
+          <label class="campo">Período
+            <select id="periodo-select">${opcoesPeriodo}</select>
+          </label>
+          <div class="acoes">
+            <button class="botao secundario pequeno" type="button" data-acao="periodo-anterior">← Período</button>
+            <button class="botao secundario pequeno" type="button" data-acao="periodo-hoje">Hoje</button>
+            <button class="botao secundario pequeno" type="button" data-acao="periodo-proximo">Período →</button>
+          </div>
         </div>
         <div class="tabela-wrap">
           <table>
             <thead><tr><th>Produto</th><th class="num">Quantidade</th><th class="num">Receita</th></tr></thead>
-            <tbody>${linhas}</tbody>
+            <tbody>${linhasResumo}</tbody>
           </table>
         </div>
-        <p class="nota">Receita estimada = quantidade vendida × preço de venda cadastrado.</p>
-      </section>
-      <section class="card resumo-meses">
-        <div class="card-head"><div><h2>Resumo por mês</h2><p>Receita total e produtos com venda.</p></div></div>
-        <div class="tabela-wrap">
-          <table>
-            <thead><tr><th>Mês</th><th class="num">Produtos com venda</th><th class="num">Receita</th></tr></thead>
-            <tbody>${meses}</tbody>
-          </table>
-        </div>
+        <div class="resumo-total"><span>Receita estimada no período</span><strong>${fmtBRL(resumo.totalReceita)}</strong></div>
+        <p class="nota">A previsão e a compra usam a semana; o período é só para consulta.</p>
       </section>`;
   }
 
@@ -595,8 +552,42 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     if (semResultado) semResultado.hidden = visiveis > 0;
   }
 
-  function salvarSemana() {
-    state.semanaSelecionada = Vendas.normalizarSemana(state.semanaSelecionada);
+  function deslocarPeriodo(delta) {
+    const base = new Date(`${state.periodoReferencia}T12:00:00`);
+    if (state.periodo === "dia") {
+      state.periodoReferencia = Vendas.adicionarDias(state.periodoReferencia, delta);
+    } else if (state.periodo === "semana") {
+      state.periodoReferencia = Vendas.adicionarDias(state.periodoReferencia, delta * 7);
+    } else if (state.periodo === "mes") {
+      base.setDate(1);
+      base.setMonth(base.getMonth() + delta);
+      state.periodoReferencia = Vendas.normalizarDia(base);
+    } else {
+      base.setDate(1);
+      base.setMonth(0);
+      base.setFullYear(base.getFullYear() + delta);
+      state.periodoReferencia = Vendas.normalizarDia(base);
+    }
+  }
+
+  function capturarDiaEditado() {
+    const valores = {};
+    document.querySelectorAll("[data-venda-produto]").forEach((input) => {
+      valores[input.dataset.vendaProduto] = input.value;
+    });
+    return { data: state.dataSelecionada, valores };
+  }
+
+  function restaurarDiaEditado(draft) {
+    if (!draft || draft.data !== state.dataSelecionada) return;
+    document.querySelectorAll("[data-venda-produto]").forEach((input) => {
+      const valor = draft.valores[input.dataset.vendaProduto];
+      if (valor !== undefined) input.value = valor;
+    });
+  }
+
+  function salvarDia() {
+    state.dataSelecionada = Vendas.normalizarDia(state.dataSelecionada);
     const inputs = [...document.querySelectorAll("[data-venda-produto]")];
     const valores = {};
     for (const input of inputs) {
@@ -610,9 +601,9 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       valores[input.dataset.vendaProduto] = valor;
     }
     try {
-      state.semanas = Vendas.salvarSemana(state.semanas, state.semanaSelecionada, valores, state.produtos);
+      state.dias = Vendas.salvarDia(state.dias, state.dataSelecionada, valores, state.produtos);
       state.exemplo = false;
-      salvarComAviso("Semana salva.");
+      salvarComAviso("Dia salvo.");
       render();
       document.getElementById("titulo-lancamento")?.focus();
     } catch (err) {
@@ -620,20 +611,21 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     }
   }
 
-  function excluirSemana() {
-    if (!state.semanas.some((s) => s.data === state.semanaSelecionada)) return;
-    if (!confirm(`Excluir as vendas da semana de ${fmtDataLonga(state.semanaSelecionada)}?`)) return;
-    state.semanas = Vendas.removerSemana(state.semanas, state.semanaSelecionada);
+  function excluirDia() {
+    if (!state.dias.some((d) => d.data === state.dataSelecionada)) return;
+    if (!confirm(`Excluir as vendas do dia ${fmtDataLonga(state.dataSelecionada)}?`)) return;
+    state.dias = Vendas.removerDia(state.dias, state.dataSelecionada);
     state.exemplo = false;
-    salvarComAviso("Semana excluída.");
+    salvarComAviso("Dia excluído.");
     render();
   }
 
   function carregarExemplo() {
     if (!confirm("Substituir os dados atuais pelo exemplo?")) return;
     aplicarEstado(Estado.estadoExemplo());
-    state.semanaSelecionada = Vendas.normalizarSemana(new Date());
-    state.visaoMensal = false;
+    state.dataSelecionada = Vendas.normalizarDia(new Date());
+    state.periodo = "semana";
+    state.periodoReferencia = Vendas.normalizarDia(new Date());
     state.filtro = "";
     state.aba = "compras";
     salvarComAviso("Exemplo carregado.");
@@ -643,8 +635,9 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
   function limparDados() {
     if (!confirm("Apagar todos os produtos e vendas? Esta ação não pode ser desfeita.")) return;
     aplicarEstado(Estado.estadoVazio());
-    state.semanaSelecionada = Vendas.normalizarSemana(new Date());
-    state.visaoMensal = false;
+    state.dataSelecionada = Vendas.normalizarDia(new Date());
+    state.periodo = "semana";
+    state.periodoReferencia = Vendas.normalizarDia(new Date());
     state.filtro = "";
     state.aba = "produtos";
     salvarComAviso("Dados apagados.");
@@ -657,7 +650,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     if (!confirm(`Remover "${produto.nome}" e apagar todo o histórico de vendas dele?`)) return;
     try {
       state.produtos = Produtos.remover(state.produtos, id);
-      state.semanas = Vendas.removerProduto(state.semanas, id);
+      state.dias = Vendas.removerProduto(state.dias, id);
       if (state.produtoSelecionado === id) state.produtoSelecionado = state.produtos[0]?.id ?? null;
       state.produtoEditando = null;
       state.exemplo = false;
@@ -731,19 +724,41 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       if (!botao) return;
       const acao = botao.dataset.acao;
       if (acao === "ir-produtos") { state.aba = "produtos"; render(); }
-      else if (acao === "ir-vendas") { state.aba = "vendas"; state.visaoMensal = false; render(); }
-      else if (acao === "salvar-semana") salvarSemana();
-      else if (acao === "excluir-semana") excluirSemana();
-      else if (acao === "alternar-mensal") {
-        state.visaoMensal = !state.visaoMensal;
+      else if (acao === "ir-vendas") { state.aba = "vendas"; render(); }
+      else if (acao === "salvar-dia") salvarDia();
+      else if (acao === "excluir-dia") excluirDia();
+      else if (acao === "dia-anterior") {
+        const novo = Vendas.adicionarDias(state.dataSelecionada, -1);
+        state.dataSelecionada = novo;
+        state.periodoReferencia = novo;
         render();
-      } else if (acao === "semana-anterior") {
-        state.semanaSelecionada = Vendas.adicionarSemanas(state.semanaSelecionada, -1);
+        document.getElementById("dia-data")?.focus();
+      } else if (acao === "dia-proximo") {
+        const hoje = Vendas.normalizarDia(new Date());
+        const novo = Vendas.adicionarDias(state.dataSelecionada, 1);
+        if (novo > hoje) {
+          toast("Não há dias futuros.", true);
+          return;
+        }
+        state.dataSelecionada = novo;
+        state.periodoReferencia = novo;
         render();
-      } else if (acao === "semana-proxima") {
-        state.semanaSelecionada = Vendas.adicionarSemanas(state.semanaSelecionada, 1);
+        document.getElementById("dia-data")?.focus();
+      } else if (acao === "hoje") {
+        const hoje = Vendas.normalizarDia(new Date());
+        state.dataSelecionada = hoje;
+        state.periodoReferencia = hoje;
         render();
-      } else if (acao === "editar-produto") {
+        document.getElementById("dia-data")?.focus();
+      } else if (acao === "periodo-anterior" || acao === "periodo-proximo" || acao === "periodo-hoje") {
+        const draft = capturarDiaEditado();
+        if (acao === "periodo-hoje") state.periodoReferencia = Vendas.normalizarDia(new Date());
+        else deslocarPeriodo(acao === "periodo-anterior" ? -1 : 1);
+        render();
+        restaurarDiaEditado(draft);
+        document.getElementById("periodo-select")?.focus();
+      }
+      else if (acao === "editar-produto") {
         state.produtoEditando = botao.dataset.produto;
         state.aba = "produtos";
         render();
@@ -766,17 +781,29 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     document.addEventListener("submit", salvarProduto);
 
     document.addEventListener("change", (event) => {
-      if (event.target.id === "semana-data") {
+      if (event.target.id === "dia-data") {
         if (!event.target.value) {
           render();
+          document.getElementById("dia-data")?.focus();
           return;
         }
-        state.semanaSelecionada = Vendas.normalizarSemana(event.target.value);
+        const novo = Vendas.normalizarDia(event.target.value);
+        if (novo > Vendas.normalizarDia(new Date())) {
+          toast("Não registre vendas futuras.", true);
+          render();
+          document.getElementById("dia-data")?.focus();
+          return;
+        }
+        state.dataSelecionada = novo;
+        state.periodoReferencia = novo;
         render();
-        document.getElementById("semana-data")?.focus();
-      } else if (event.target.id === "mes-select") {
-        state.mesSelecionado = event.target.value;
+        document.getElementById("dia-data")?.focus();
+      } else if (event.target.id === "periodo-select") {
+        const draft = capturarDiaEditado();
+        state.periodo = event.target.value;
         render();
+        restaurarDiaEditado(draft);
+        document.getElementById("periodo-select")?.focus();
       }
     });
 

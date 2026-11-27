@@ -745,7 +745,7 @@
             <span class="tag ouro">Persona e dados ilustrativos</span>
           </div>
           <div class="fluxo">
-            <div class="fluxo-item"><span class="n">1</span><div><strong>O que vendeu?</strong><small>Histórico semanal por produto, com quantidade e receita.</small></div></div>
+            <div class="fluxo-item"><span class="n">1</span><div><strong>O que vendeu?</strong><small>Histórico diário por produto, com visão por dia, semana, mês ou ano.</small></div></div>
             <div class="fluxo-item"><span class="n">2</span><div><strong>Quanto vai vender?</strong><small>Previsão automática da próxima semana, com erro medido.</small></div></div>
             <div class="fluxo-item"><span class="n">3</span><div><strong>Quanto comprar?</strong><small>Previsão + estoque mínimo − estoque atual, por produto.</small></div></div>
             <div class="gap"><strong>Saída:</strong> lista de compras com quantidade e custo estimado.</div>
@@ -762,7 +762,7 @@
       <div class="corpo">
         <h2>Dados, modelos, conhecimento e interface — no mesmo fluxo.</h2>
         <div class="sad-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
-          <div class="cartao sad-card"><span class="simbolo">01</span><h3>Dados</h3><p>Produtos, vendas semanais, estoque atual e estoque mínimo.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">01</span><h3>Dados</h3><p>Produtos, vendas diárias, estoque atual e estoque mínimo.</p></div>
           <div class="cartao sad-card"><span class="simbolo">02</span><h3>Modelos</h3><p>Média móvel, suavização exponencial e regressão; backtest de 4 semanas.</p></div>
           <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Unidade de medida, estoque mínimo e a regra de compra.</p></div>
           <div class="cartao sad-card"><span class="simbolo">04</span><h3>Interface</h3><p>Compras, Vendas e Produtos. A decisão na primeira tela.</p></div>
@@ -850,7 +850,7 @@ custo     = sugestão × custo unitário</code>
         <img class="shot" src="slides/img/app-compras.png" alt="Tela de Compras do Mercadinho Seridó com a lista de compras sugerida" style="max-height: 58vh; width: auto; max-width: 100%; margin: 0 auto;">
       </div>
       <div class="rodape"><span><em>Demo ao vivo:</em> Compras → Vendas → Produtos.</span><span>O dono vê a conta e o custo antes de comprar.</span></div>
-      <div class="notas">Demonstração: abrir Compras, mostrar a lista e o custo total; selecionar um produto e abrir “Como calculamos”; ir para Vendas e mostrar o lançamento semanal; finalizar em Produtos com o cadastro e o exemplo/limpar.</div>
+      <div class="notas">Demonstração: abrir Compras, mostrar a lista e o custo total; selecionar um produto e abrir “Como calculamos”; ir para Vendas e mostrar o lançamento do dia e os períodos; finalizar em Produtos com o cadastro e o exemplo/limpar.</div>
     </section>
 
     <section class="slide" data-slide="8">
@@ -863,10 +863,11 @@ custo     = sugestão × custo unitário</code>
             <span class="tag verde">Entrega</span>
             <ul style="margin: 12px 0 0 18px; padding: 0; color: var(--ink-soft); font-size: clamp(0.78rem, 1.1vw, 0.92rem); line-height: 1.65;">
               <li>3 abas: Compras, Vendas e Produtos.</li>
+              <li>Vendas diárias com visão por dia/semana/mês/ano.</li>
               <li>Previsão automática com erro na tela.</li>
               <li>Compra sugerida com quantidade e custo.</li>
               <li>Exemplo rotulado, dados no navegador.</li>
-              <li>54 testes e deploy no GitHub Pages.</li>
+              <li>73 testes e deploy no GitHub Pages.</li>
             </ul>
           </div>
           <div class="cartao" style="padding: clamp(16px, 2vw, 24px);">

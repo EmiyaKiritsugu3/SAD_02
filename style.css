@@ -354,6 +354,8 @@ tbody tr:last-child td { border-bottom: none; }
   border-radius: 14px;
 }
 .semana-barra .campo { min-width: 170px; }
+.semana-atual { color: var(--muted); font-size: 0.8rem; font-weight: 650; }
+.semana-atual strong { color: var(--ink); font-size: 0.95rem; font-weight: 700; font-family: Georgia, "Times New Roman", serif; }
 .semana-barra .acoes { margin-top: 0; }
 .tabela-vendas input {
   width: 110px;
@@ -368,6 +370,8 @@ tbody tr:last-child td { border-bottom: none; }
 .mensal-topo { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
 .mensal-topo .campo { min-width: 180px; }
 .resumo-meses { margin-top: 18px; }
+.resumo-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+.resumo-total strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; }
 
 /* ---------- Produtos ---------- */
 .form-produto { margin-bottom: 18px; }
