@@ -53,6 +53,11 @@ const App = (() => {
     return `${(Number(valor) * 100).toFixed(1).replace(".", ",")}%`;
   }
 
+  function rotuloCobertura(dias) {
+    if (dias === 1) return "1 dia da previsão";
+    return `${dias} dias da previsão`;
+  }
+
   function fmtMes(mes) {
     const texto = new Date(`${mes}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     return texto.charAt(0).toUpperCase() + texto.slice(1);
@@ -561,9 +566,10 @@ const App = (() => {
         return `<strong>${fmtQtd(item.sugestao)} ${esc(p.unidade)}</strong>`;
       })();
       const custo = item.semDados || item.sugestao === 0 ? "—" : fmtBRL(item.custo);
+      const origemMinimo = item.minimoManual ? "manual" : "auto";
       const minimo = item.semDados
         ? `<span class="sem-dados">—</span>`
-        : `<span class="minimo-valor">${fmtQtd(item.minimo)}</span> <small class="minimo-origem">${item.minimoManual ? "manual" : "auto"}</small>`;
+        : `<span class="minimo-valor">${fmtQtd(item.minimo)}</span> <small class="minimo-origem">${origemMinimo}</small>`;
       return `
         <tr class="linha-produto ${p.id === produtoSel.id ? "selecionado" : ""}"
             data-produto="${esc(p.id)}" data-nome="${esc(normalizarBusca(p.nome))}"
@@ -658,9 +664,7 @@ const App = (() => {
       ? `<div class="tabela-wrap"><table class="tabela-backtest"><thead><tr><th>Semana</th><th class="num">Previsto</th><th class="num">Real</th></tr></thead><tbody>${reais.map((real, i) => `<tr><td>${fmtData(semanasBacktest[i])}</td><td class="num">${fmtQtd(previstos[i])} ${esc(produto.unidade)}</td><td class="num">${fmtQtd(real)} ${esc(produto.unidade)}</td></tr>`).join("")}</tbody></table></div>`
       : `<p class="sem-dados">Backtest indisponível para este produto.</p>`;
     const minimo = item?.minimo ?? 0;
-    const origemMinimo = item?.minimoManual
-      ? "manual"
-      : (state.diasCobertura === 1 ? "1 dia da previsão" : `${state.diasCobertura} dias da previsão`);
+    const origemMinimo = item?.minimoManual ? "manual" : rotuloCobertura(state.diasCobertura);
     return `
       <section class="card grafico-card" aria-labelledby="grafico-produto">
         <div class="card-head">
