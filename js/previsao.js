@@ -100,9 +100,24 @@ const Previsao = (() => {
     return { serie: valores.slice(0, corte), semanas: sem.slice(0, corte) };
   }
 
+  function paraSerie(serie) {
+    if (!Array.isArray(serie) || serie.length < 4) return null;
+    if (serie.length < 8) {
+      const params = { janela: Math.min(4, serie.length) };
+      return {
+        metodo: "mediaMovel",
+        params,
+        prev4: prever(serie, "mediaMovel", params, 4),
+        metricas: backtest(serie, "mediaMovel", params, 4),
+      };
+    }
+    const escolha = escolherMelhor(serie, 4);
+    return { ...escolha, prev4: prever(serie, escolha.metodo, escolha.params, 4) };
+  }
+
   return {
     mediaMovel, suavizacaoExponencial, regressaoLinear, prever,
-    mae, mape, backtest, escolherMelhor, serieAte,
+    mae, mape, backtest, escolherMelhor, serieAte, paraSerie,
   };
 })();
 
