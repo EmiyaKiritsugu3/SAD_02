@@ -13,6 +13,7 @@ const App = (() => {
     parametros: { janela: 4, alfa: 0.3 },
     semanaReferencia: null,
     produtoPrevisao: null,
+    diasCobertura: 1,
     filtro: "",
     produtoEditando: null,
     erroPersistencia: null,
@@ -50,6 +51,11 @@ const App = (() => {
   function fmtPct(valor) {
     if (valor === null || valor === undefined || !Number.isFinite(Number(valor))) return "—";
     return `${(Number(valor) * 100).toFixed(1).replace(".", ",")}%`;
+  }
+
+  function rotuloCobertura(dias) {
+    if (dias === 1) return "1 dia da previsão";
+    return `${dias} dias da previsão`;
   }
 
   function fmtMes(mes) {
@@ -101,7 +107,13 @@ const App = (() => {
   }
 
   function salvar() {
-    const ok = Estado.salvar({ versao: 2, produtos: state.produtos, dias: state.dias, exemplo: state.exemplo });
+    const ok = Estado.salvar({
+      versao: 2,
+      produtos: state.produtos,
+      dias: state.dias,
+      exemplo: state.exemplo,
+      politica: { diasCobertura: state.diasCobertura },
+    });
     state.erroPersistencia = ok ? null : "Não foi possível gravar os dados neste navegador. As alterações valem só nesta sessão.";
     atualizarAvisoPersistencia();
     return ok;
@@ -117,6 +129,8 @@ const App = (() => {
     state.produtos = Array.isArray(estado.produtos) ? estado.produtos : [];
     state.dias = Array.isArray(estado.dias) ? estado.dias : [];
     state.exemplo = Boolean(estado.exemplo);
+    const dias = Number(estado.politica?.diasCobertura);
+    state.diasCobertura = Number.isInteger(dias) && dias >= 1 && dias <= 7 ? dias : 1;
     if (!state.produtos.some((p) => p.id === state.produtoSelecionado)) {
       state.produtoSelecionado = state.produtos[0]?.id ?? null;
     }
@@ -525,7 +539,7 @@ const App = (() => {
 
     const dados = previsoesMap();
     const previsoes = Object.fromEntries(state.produtos.map((p) => [p.id, dados[p.id].previsao]));
-    const itens = Compras.lista(state.produtos, previsoes);
+    const itens = Compras.lista(state.produtos, previsoes, state.diasCobertura);
     const total = Compras.total(itens);
     const semDados = Compras.semDados(itens);
     const hoje = Vendas.normalizarSemana(new Date());
@@ -539,6 +553,7 @@ const App = (() => {
     }
     const produtoSel = Produtos.porId(state.produtos, state.produtoSelecionado) || state.produtos[0];
     const dadosSel = dados[produtoSel.id];
+    const itemSel = itens.find((item) => item.produto.id === produtoSel.id);
 
     const linhas = itens.map((item) => {
       const p = item.produto;
@@ -551,6 +566,10 @@ const App = (() => {
         return `<strong>${fmtQtd(item.sugestao)} ${esc(p.unidade)}</strong>`;
       })();
       const custo = item.semDados || item.sugestao === 0 ? "—" : fmtBRL(item.custo);
+      const origemMinimo = item.minimoManual ? "manual" : "auto";
+      const minimo = item.semDados
+        ? `<span class="sem-dados">—</span>`
+        : `<span class="minimo-valor">${fmtQtd(item.minimo)}</span> <small class="minimo-origem">${origemMinimo}</small>`;
       return `
         <tr class="linha-produto ${p.id === produtoSel.id ? "selecionado" : ""}"
             data-produto="${esc(p.id)}" data-nome="${esc(normalizarBusca(p.nome))}"
@@ -558,7 +577,7 @@ const App = (() => {
           <td><span class="produto-nome"><strong>${esc(p.nome)}</strong><small>${esc(p.unidade)}</small></span></td>
           <td class="num">${previsao}</td>
           <td class="num">${fmtQtd(p.estoqueAtual)}</td>
-          <td class="num">${fmtQtd(p.estoqueMinimo)}</td>
+          <td class="num">${minimo}</td>
           <td class="num">${compra}</td>
           <td class="num">${custo}</td>
         </tr>`;
@@ -582,12 +601,15 @@ const App = (() => {
       </div>
       <section class="card" aria-labelledby="titulo-lista-compras">
         <div class="card-head">
-          <div><h2 id="titulo-lista-compras">Lista de compras</h2><p>Previsão da próxima semana + estoque mínimo − estoque atual.</p></div>
+          <div><h2 id="titulo-lista-compras">Lista de compras</h2><p>Previsão da próxima semana + mínimo − estoque atual.</p></div>
           <span class="badge" id="badge-filtro" data-total="${itens.length}">${visiveis.length} de ${itens.length}</span>
         </div>
         <div class="filtro">
           <label for="filtro-compras">Buscar</label>
           <input id="filtro-compras" data-campo="filtro" type="search" placeholder="Nome do produto" value="${esc(state.filtro)}">
+          <label for="cobertura-minimo">Cobertura do mínimo</label>
+          <input id="cobertura-minimo" class="filtro-numero" data-campo="cobertura" type="number" min="1" max="7" step="1" value="${state.diasCobertura}" inputmode="numeric">
+          <span class="filtro-unidade">dia(s)</span>
         </div>
         <div class="tabela-wrap">
           <table id="tabela-compras">
@@ -595,14 +617,14 @@ const App = (() => {
             <tbody>${linhas}<tr id="sem-resultado" hidden><td colspan="6" class="sem-dados">Nenhum produto encontrado.</td></tr></tbody>
           </table>
         </div>
-        <p class="nota">O estoque é atualizado por você. O app não controla o caixa nem as compras.</p>
+        <p class="nota">Mínimo automático = previsão da semana ÷ 7 × cobertura. Um estoque mínimo manual no produto substitui o automático. O estoque é atualizado por você; o app não controla o caixa nem as compras.</p>
       </section>
-      ${renderGraficoProduto(produtoSel, dadosSel)}
+      ${renderGraficoProduto(produtoSel, dadosSel, itemSel)}
     `;
     filtrarLinhas();
   }
 
-  function renderGraficoProduto(produto, dados) {
+  function renderGraficoProduto(produto, dados, item) {
     const prev = dados?.prev;
     if (!prev) {
       return `
@@ -641,6 +663,8 @@ const App = (() => {
     const backtest = reais.length > 0
       ? `<div class="tabela-wrap"><table class="tabela-backtest"><thead><tr><th>Semana</th><th class="num">Previsto</th><th class="num">Real</th></tr></thead><tbody>${reais.map((real, i) => `<tr><td>${fmtData(semanasBacktest[i])}</td><td class="num">${fmtQtd(previstos[i])} ${esc(produto.unidade)}</td><td class="num">${fmtQtd(real)} ${esc(produto.unidade)}</td></tr>`).join("")}</tbody></table></div>`
       : `<p class="sem-dados">Backtest indisponível para este produto.</p>`;
+    const minimo = item?.minimo ?? 0;
+    const origemMinimo = item?.minimoManual ? "manual" : rotuloCobertura(state.diasCobertura);
     return `
       <section class="card grafico-card" aria-labelledby="grafico-produto">
         <div class="card-head">
@@ -657,10 +681,10 @@ const App = (() => {
           </div>
           <p><strong>Backtest:</strong> últimas ${reais.length} semanas.</p>
           ${backtest}
-          <code class="formula">compra = max(0, previsão + estoque mínimo − estoque atual)
+          <code class="formula">compra = max(0, previsão + mínimo − estoque)
 previsão = ${fmtQtd(dados.previsao)} ${esc(produto.unidade)}
-estoque = ${fmtQtd(produto.estoqueAtual)}
-mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
+estoque = ${fmtQtd(produto.estoqueAtual)} ${esc(produto.unidade)}
+mínimo = ${fmtQtd(minimo)} ${esc(produto.unidade)} (${esc(origemMinimo)})</code>
         </details>
       </section>`;
   }
@@ -778,20 +802,25 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     const editando = state.produtoEditando ? Produtos.porId(state.produtos, state.produtoEditando) : null;
     const p = editando || { nome: "", unidade: "un", custo: "", preco: "", estoqueAtual: 0, estoqueMinimo: 0 };
     const opcoesUnidade = Produtos.UNIDADES.map((u) => `<option value="${u}" ${p.unidade === u ? "selected" : ""}>${u}</option>`).join("");
-    const linhas = state.produtos.map((produto) => `
+    const linhas = state.produtos.map((produto) => {
+      const minimo = produto.estoqueMinimo > 0
+        ? `${fmtQtd(produto.estoqueMinimo)} ${esc(produto.unidade)} <small class="minimo-origem">manual</small>`
+        : `<span class="sem-dados">auto</span>`;
+      return `
       <tr>
         <td><span class="produto-nome"><strong>${esc(produto.nome)}</strong><small>${esc(produto.unidade)}</small></span></td>
         <td class="num">${fmtBRL(produto.custo)}</td>
         <td class="num">${fmtBRL(produto.preco)}</td>
         <td class="num">${fmtQtd(produto.estoqueAtual)} ${esc(produto.unidade)}</td>
-        <td class="num">${fmtQtd(produto.estoqueMinimo)} ${esc(produto.unidade)}</td>
+        <td class="num">${minimo}</td>
         <td>
           <div class="acoes-linha">
             <button class="botao secundario pequeno" type="button" data-acao="editar-produto" data-produto="${esc(produto.id)}">Editar</button>
             <button class="botao perigo pequeno" type="button" data-acao="remover-produto" data-produto="${esc(produto.id)}">Remover</button>
           </div>
         </td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
 
     app.innerHTML = `
       <section class="card form-produto" aria-labelledby="titulo-form-produto">
@@ -815,8 +844,9 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
             <label class="campo">Estoque atual
               <input name="estoqueAtual" type="number" min="0" step="0.1" value="${valorForm(p.estoqueAtual)}" inputmode="decimal">
             </label>
-            <label class="campo">Estoque mínimo
+            <label class="campo">Estoque mínimo manual
               <input name="estoqueMinimo" type="number" min="0" step="0.1" value="${valorForm(p.estoqueMinimo)}" inputmode="decimal">
+              <small class="campo-ajuda">0 = automático (previsão ÷ 7 × cobertura)</small>
             </label>
           </div>
           <div class="acoes">
@@ -1113,6 +1143,18 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         state.produtoPrevisao = event.target.value;
         render();
         document.querySelector("[data-previsao-select]")?.focus();
+      } else if (event.target.matches('[data-campo="cobertura"]')) {
+        const dias = Number(event.target.value);
+        if (!Number.isInteger(dias) || dias < 1 || dias > 7) {
+          toast("A cobertura deve ser de 1 a 7 dias.", true);
+          render();
+          document.querySelector('[data-campo="cobertura"]')?.focus();
+          return;
+        }
+        state.diasCobertura = dias;
+        salvarComAviso("Cobertura atualizada.");
+        render();
+        document.querySelector('[data-campo="cobertura"]')?.focus();
       } else if (event.target.id === "dia-data") {
         if (!event.target.value) {
           render();

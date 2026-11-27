@@ -9,7 +9,7 @@
 npm test
 ```
 
-- **75 testes** com `node:test`, cobrindo estado/persistência, migração v1→v2, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento.
+- **77 testes** com `node:test`, cobrindo estado/persistência, política de cobertura, migração v1→v2, produtos, dias, série semanal, resumos por período, previsão, compra sugerida, mínimo automático/manual e arredondamento.
 - `node --check` em todos os arquivos de `js/`.
 - `pdfinfo slides.pdf` → **10 páginas**.
 
@@ -25,8 +25,9 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 
 ### App
 
-1. **Compras:** a lista deve ter 10 produtos, o total deve ser **R$ 2.319,44** e o gráfico do Arroz deve aparecer.
-2. **Backtest da compra:** abra “Como calculamos” e confira a tabela com 4 linhas (Semana, Previsto, Real).
+1. **Compras:** a lista deve ter 10 produtos, o total deve ser **R$ 2.350,10** e o gráfico do Arroz deve aparecer. Na coluna **Mínimo**, o Arroz deve mostrar **5,6 AUTO**.
+   - **Cobertura:** confira **1 dia**; mude para **2** e o total deve ir para **R$ 2.733,16** (Arroz **11,2 AUTO**). Volte para **1**.
+2. **Backtest da compra:** abra “Como calculamos” e confira a tabela com 4 linhas (Semana, Previsto, Real) e a fórmula do mínimo. No Arroz: mínimo **5,6 (1 dia da previsão)**.
 3. **Previsão:** a aba deve mostrar a semana de referência (`23/11/2026`), **52 opções** de semana, um gráfico de **52 + 4** e o produto mais vendido selecionado (Pão francês).
 4. **Método:** troque para **Média móvel**; o badge deve virar **Manual**, a tabela de erro deve mostrar “Média móvel (4 semanas)” e o método deve continuar valendo em Compras. Volte para **Automático**.
 5. **Produto do gráfico:** troque o produto no seletor; o histórico, a previsão e as métricas devem ser recalculados.
@@ -45,6 +46,7 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 14. **Falha de gravação:** no console, faça `Storage.prototype.setItem = () => { throw new Error("quota"); }` e salve; o banner “Não foi possível gravar os dados…” deve aparecer, junto com o toast de erro.
 15. **Nome longo:** cadastre um produto com 60 caracteres sem espaço, abra Compras em 360 px e confira que a página não tem overflow horizontal.
 16. **Produtos:** adicionar, editar e remover; carregar exemplo e limpar dados.
+    - **Override manual:** edite o Arroz e coloque **estoque mínimo 4**; a coluna deve mostrar **4 MANUAL** e a compra deve cair para **36 un (R$ 810,00)**. Volte para **0** para o automático.
 17. **Migração:** remova `mercadinho-serido:v2`, deixe um `localStorage` no formato v1 (semana) e recarregue; o app deve converter para dias, mostrar o aviso de migração e preservar o total semanal. O teste automatizado cobre o mesmo cenário.
 18. **Mobile:** em 360 px, a sidebar vira uma faixa horizontal, as tabelas e os gráficos têm rolagem interna e a página não tem overflow horizontal.
 
@@ -53,14 +55,17 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 1. Abra `http://localhost:8000/slides.html`.
 2. Devem existir **10 slides**; `→` avança e `←` volta.
 3. O slide de Previsão deve mostrar **52 + 4** e as métricas novas (Arroz MAE 2,8 / MAPE 6,7%; Leite MAE 4,8 / MAPE 7,5%).
-4. O PDF `slides.pdf` deve ter 10 páginas e abrir com o mesmo conteúdo.
-5. O link do app no slide final deve apontar para `https://emiyakiritsugu3.github.io/SAD_02/`.
+4. O slide da regra da compra deve mostrar o mínimo automático e o exemplo do Arroz: **39,1 + 5,6 − 8 = 36,7 → 37 un → R$ 832,50**.
+5. O PDF `slides.pdf` deve ter 10 páginas e abrir com o mesmo conteúdo.
+6. O link do app no slide final deve apontar para `https://emiyakiritsugu3.github.io/SAD_02/`.
 
 ## Última execução
 
-- `npm test` → **75/75 passando**.
+- `npm test` → **77/77 passando**.
 - Smoke do app em 1440×950 e 360×800 → sem erros de console, sem overflow.
-- Compras → total **R$ 2.319,44**.
+- Compras → total **R$ 2.350,10**; Arroz **5,6 AUTO / 37 un / R$ 832,50**.
+- Cobertura 2 dias → total **R$ 2.733,16**; Arroz **11,2 AUTO**.
+- Override manual do Arroz (4) → **36 un / R$ 810,00**; a cobertura continua valendo para os outros.
 - Vendas (exemplo em 27/11/2026) → Dia **R$ 814,60**, Semana **R$ 3.555,50**, Mês **R$ 14.496,90**, Ano **R$ 158.168,40**.
 - Previsão → 52 opções de semana, 1 gráfico de 52 + 4, 10 linhas na tabela de erro, 10 produtos × 4 semanas na tabela de próximas semanas.
 - Salvar dia → previsão/compra recalculadas; `localStorage` v2 com 362 dias no exemplo.

@@ -14,7 +14,7 @@ App estático que ajuda o dono de um mercadinho de bairro em Caicó/RN a decidir
 
 ### 1. Produtos
 
-Cadastre nome, unidade (`un`, `kg` ou `L`), custo, preço, estoque atual e estoque mínimo. O custo entra na compra; o preço, na receita por período.
+Cadastre nome, unidade (`un`, `kg` ou `L`), custo, preço, estoque atual e estoque mínimo manual. O custo entra na compra; o preço, na receita por período. **Estoque mínimo 0 = automático:** o app usa 1 dia da previsão (ajustável em Compras).
 
 ### 2. Vendas
 
@@ -34,12 +34,15 @@ Um produto selecionável aparece em um gráfico largo, com o histórico e a prev
 Para cada produto com pelo menos 4 semanas de histórico, o app projeta a próxima semana e calcula:
 
 ```text
-necessidade = max(0, previsão da próxima semana + estoque mínimo − estoque atual)
+mínimo = estoque mínimo manual > 0
+         ? estoque mínimo manual
+         : (previsão da próxima semana ÷ 7) × dias de cobertura
+necessidade = max(0, previsão da próxima semana + mínimo − estoque atual)
 sugestão = unidade "un" ? arredonda para cima : arredonda com 1 casa
 custo estimado = sugestão × custo unitário
 ```
 
-O total da compra aparece no topo. O estoque é atualizado manualmente pelo dono; o app não controla compras ou vendas como movimentos de estoque.
+A **cobertura do mínimo** fica na lista de compras: 1 dia por padrão, ajustável de 1 a 7. Um valor manual no produto (maior que 0) substitui o automático. O total da compra aparece no topo. O estoque é atualizado manualmente pelo dono; o app não controla compras ou vendas como movimentos de estoque.
 
 ### Modelos
 
@@ -53,7 +56,7 @@ O total da compra aparece no topo. O estoque é atualizado manualmente pelo dono
 
 ## Dados de exemplo
 
-Na primeira abertura, o app carrega 10 produtos e 52 semanas de vendas diárias ilustrativas (01/12/2025 a 27/11/2026; a semana corrente vai até hoje), marcadas como **dados de exemplo**. Em **Produtos** é possível:
+Na primeira abertura, o app carrega 10 produtos e 52 semanas de vendas diárias ilustrativas (01/12/2025 a 27/11/2026; a semana corrente vai até hoje), marcadas como **dados de exemplo**. Os produtos do exemplo usam **estoque mínimo 0 (automático, 1 dia da previsão)**. Em **Produtos** é possível:
 
 - **Carregar exemplo** — restaura o conjunto de exemplo.
 - **Limpar dados** — apaga produtos e vendas e começa do zero.
@@ -80,7 +83,7 @@ Abra:
 npm test
 ```
 
-**75 testes** com `node:test`, cobrindo estado/persistência, migração do formato semanal, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as quatro abas, o CRUD de produtos, o lançamento diário, os períodos, a previsão 52 + 4, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
+**77 testes** com `node:test`, cobrindo estado/persistência, política de cobertura, migração do formato semanal, produtos, dias, série semanal, resumos por período, previsão, compra sugerida, mínimo automático/manual e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as quatro abas, o CRUD de produtos, o lançamento diário, os períodos, a previsão 52 + 4, a cobertura do mínimo, o override manual, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
 
 ## Estrutura
 

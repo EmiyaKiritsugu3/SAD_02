@@ -9,6 +9,8 @@ test("sugere compra descontando estoque e somando mínimo", () => {
   assert.equal(r.sugestao, 8);
   assert.equal(r.custo, 16);
   assert.equal(r.semDados, false);
+  assert.equal(r.minimo, 3);
+  assert.equal(r.minimoManual, true);
 });
 
 test("un arredonda para cima e kg/L usam uma casa", () => {
@@ -24,6 +26,21 @@ test("estoque que cobre a previsão sugere zero", () => {
   assert.equal(r.necessidade, 0);
   assert.equal(r.sugestao, 0);
   assert.equal(r.custo, 0);
+  assert.equal(r.minimoManual, false);
+  assert.ok(Math.abs(r.minimo - 15 / 7) < 1e-9);
+});
+
+test("mínimo automático usa dias de cobertura e respeita override manual", () => {
+  const p = { id: "a", unidade: "un", custo: 2, estoqueAtual: 0, estoqueMinimo: 0 };
+  const auto = Compras.sugerir(p, 14, 2);
+  assert.equal(auto.minimoManual, false);
+  assert.ok(Math.abs(auto.minimo - 4) < 1e-9);
+  assert.equal(auto.necessidade, 18);
+  assert.equal(auto.sugestao, 18);
+  const manual = Compras.sugerir({ ...p, estoqueMinimo: 3 }, 14, 2);
+  assert.equal(manual.minimoManual, true);
+  assert.equal(manual.minimo, 3);
+  assert.equal(manual.necessidade, 17);
 });
 
 test("sem previsão retorna semDados", () => {
@@ -43,9 +60,10 @@ test("lista preserva a ordem e calcula totais", () => {
   ];
   const itens = Compras.lista(produtos, { a: 4, b: 3.2, c: null });
   assert.deepEqual(itens.map((i) => i.produto.id), ["a", "b", "c"]);
-  assert.equal(itens[0].sugestao, 4);
+  assert.equal(itens[0].sugestao, 5);
+  assert.equal(itens[0].minimoManual, false);
   assert.equal(itens[1].sugestao, 2.2);
   assert.equal(itens[2].semDados, true);
-  assert.equal(Compras.total(itens), 8 + 11);
+  assert.equal(Compras.total(itens), 21);
   assert.equal(Compras.semDados(itens), 1);
 });

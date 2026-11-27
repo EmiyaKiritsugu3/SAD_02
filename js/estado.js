@@ -14,16 +14,16 @@ const Estado = (() => {
   let ultimoErroSalvar = null;
 
   const PRODUTOS_EXEMPLO = [
-    { id: "p-arroz", nome: "Arroz 5 kg", unidade: "un", custo: 22.5, preco: 27.9, estoqueAtual: 8, estoqueMinimo: 4, base: 40 },
-    { id: "p-feijao", nome: "Feijão 1 kg", unidade: "un", custo: 7.2, preco: 9.5, estoqueAtual: 10, estoqueMinimo: 6, base: 50 },
-    { id: "p-macarrao", nome: "Macarrão 500 g", unidade: "un", custo: 3.4, preco: 4.8, estoqueAtual: 12, estoqueMinimo: 6, base: 30 },
-    { id: "p-acucar", nome: "Açúcar 1 kg", unidade: "un", custo: 4.1, preco: 5.8, estoqueAtual: 6, estoqueMinimo: 4, base: 25 },
-    { id: "p-cafe", nome: "Café 500 g", unidade: "un", custo: 16.8, preco: 21.9, estoqueAtual: 5, estoqueMinimo: 3, base: 18 },
-    { id: "p-oleo", nome: "Óleo 900 ml", unidade: "un", custo: 7.5, preco: 10.2, estoqueAtual: 9, estoqueMinimo: 4, base: 22 },
-    { id: "p-leite", nome: "Leite 1 L", unidade: "un", custo: 4.2, preco: 5.6, estoqueAtual: 14, estoqueMinimo: 8, base: 60 },
-    { id: "p-pao", nome: "Pão francês", unidade: "un", custo: 0.6, preco: 1.0, estoqueAtual: 20, estoqueMinimo: 10, base: 80 },
-    { id: "p-ovos", nome: "Ovos (dúzia)", unidade: "un", custo: 9.5, preco: 13.0, estoqueAtual: 4, estoqueMinimo: 2, base: 25 },
-    { id: "p-banana", nome: "Banana (kg)", unidade: "kg", custo: 3.8, preco: 6.5, estoqueAtual: 5, estoqueMinimo: 3, base: 15 },
+    { id: "p-arroz", nome: "Arroz 5 kg", unidade: "un", custo: 22.5, preco: 27.9, estoqueAtual: 8, estoqueMinimo: 0, base: 40 },
+    { id: "p-feijao", nome: "Feijão 1 kg", unidade: "un", custo: 7.2, preco: 9.5, estoqueAtual: 10, estoqueMinimo: 0, base: 50 },
+    { id: "p-macarrao", nome: "Macarrão 500 g", unidade: "un", custo: 3.4, preco: 4.8, estoqueAtual: 12, estoqueMinimo: 0, base: 30 },
+    { id: "p-acucar", nome: "Açúcar 1 kg", unidade: "un", custo: 4.1, preco: 5.8, estoqueAtual: 6, estoqueMinimo: 0, base: 25 },
+    { id: "p-cafe", nome: "Café 500 g", unidade: "un", custo: 16.8, preco: 21.9, estoqueAtual: 5, estoqueMinimo: 0, base: 18 },
+    { id: "p-oleo", nome: "Óleo 900 ml", unidade: "un", custo: 7.5, preco: 10.2, estoqueAtual: 9, estoqueMinimo: 0, base: 22 },
+    { id: "p-leite", nome: "Leite 1 L", unidade: "un", custo: 4.2, preco: 5.6, estoqueAtual: 14, estoqueMinimo: 0, base: 60 },
+    { id: "p-pao", nome: "Pão francês", unidade: "un", custo: 0.6, preco: 1.0, estoqueAtual: 20, estoqueMinimo: 0, base: 80 },
+    { id: "p-ovos", nome: "Ovos (dúzia)", unidade: "un", custo: 9.5, preco: 13.0, estoqueAtual: 4, estoqueMinimo: 0, base: 25 },
+    { id: "p-banana", nome: "Banana (kg)", unidade: "kg", custo: 3.8, preco: 6.5, estoqueAtual: 5, estoqueMinimo: 0, base: 15 },
   ];
 
   function mulberry32(a) {
@@ -36,7 +36,7 @@ const Estado = (() => {
   }
 
   function estadoVazio() {
-    return { versao: 2, produtos: [], dias: [], exemplo: false };
+    return { versao: 2, produtos: [], dias: [], exemplo: false, politica: { diasCobertura: 1 } };
   }
 
   function gerarSemanasExemplo(referencia = new Date()) {
@@ -102,7 +102,7 @@ const Estado = (() => {
   function estadoExemplo(referencia = new Date()) {
     const { produtos, semanas, inicio } = gerarSemanasExemplo(referencia);
     const dias = distribuirSemanas(semanas, referencia);
-    return { versao: 2, produtos, dias, exemplo: true };
+    return { versao: 2, produtos, dias, exemplo: true, politica: { diasCobertura: 1 } };
   }
 
   function numeroValido(valor) {
@@ -134,10 +134,18 @@ const Estado = (() => {
     return true;
   }
 
+  function validarPolitica(politica) {
+    if (politica === undefined) return true;
+    if (!politica || typeof politica !== "object" || Array.isArray(politica)) return false;
+    const dias = politica.diasCobertura;
+    return Number.isInteger(dias) && dias >= 1 && dias <= 7;
+  }
+
   function validar(estado) {
     if (estado?.versao !== 2) return false;
     if (!Array.isArray(estado.produtos) || !Array.isArray(estado.dias)) return false;
     if (typeof estado.exemplo !== "boolean") return false;
+    if (!validarPolitica(estado.politica)) return false;
     const ids = new Set();
     for (const produto of estado.produtos) {
       if (!validarProduto(produto, ids)) return false;
@@ -195,6 +203,7 @@ const Estado = (() => {
       produtos: estadoAntigo.produtos,
       dias,
       exemplo: Boolean(estadoAntigo.exemplo),
+      politica: { diasCobertura: 1 },
     };
   }
 
@@ -212,7 +221,7 @@ const Estado = (() => {
       if (brutoV2) {
         const salvo = JSON.parse(brutoV2);
         if (validar(salvo)) {
-          if (salvo.exemplo && semanasDoEstado(salvo) < SEMANAS_EXEMPLO) {
+          if (salvo.exemplo && (!salvo.politica || semanasDoEstado(salvo) < SEMANAS_EXEMPLO)) {
             return { estado: estadoExemplo(), aviso: null };
           }
           return { estado: salvo, aviso: null };

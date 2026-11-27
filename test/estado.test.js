@@ -29,14 +29,25 @@ test("exemplo v2 tem 10 produtos e dias até a referência", () => {
   assert.equal(s.dias.at(-1).data, "2026-11-27");
   assert.ok(s.dias.every((d) => d.data <= "2026-11-27"));
   assert.ok(s.dias.every((d) => Object.keys(d.valores).length > 0));
+  assert.ok(s.produtos.every((p) => p.estoqueMinimo === 0));
   const semanas = new Set(s.dias.map((d) => Estado.normalizarSemana(d.data)));
   assert.equal(semanas.size, 52);
 });
 
 test("estado vazio v2 é válido", () => {
   const s = Estado.estadoVazio();
-  assert.deepEqual(s, { versao: 2, produtos: [], dias: [], exemplo: false });
+  assert.deepEqual(s, { versao: 2, produtos: [], dias: [], exemplo: false, politica: { diasCobertura: 1 } });
   assert.equal(Estado.validar(s), true);
+});
+
+test("política de cobertura é opcional e validada", () => {
+  const s = Estado.estadoExemplo(new Date("2026-11-27T12:00:00"));
+  assert.equal(s.politica.diasCobertura, 1);
+  assert.equal(Estado.validar({ ...s, politica: undefined }), true);
+  assert.equal(Estado.validar({ ...s, politica: { diasCobertura: 2 } }), true);
+  assert.equal(Estado.validar({ ...s, politica: { diasCobertura: 0 } }), false);
+  assert.equal(Estado.validar({ ...s, politica: { diasCobertura: 8 } }), false);
+  assert.equal(Estado.validar({ ...s, politica: { diasCobertura: 1.5 } }), false);
 });
 
 test("validar rejeita data impossível, dia vazio, duplicado e produto órfão", () => {
@@ -138,6 +149,14 @@ test("carregar exemplo v2 de 12 semanas regenera com 52", () => {
   assert.equal(aviso, null);
   assert.equal(estado.exemplo, true);
   assert.equal(new Set(estado.dias.map((d) => Estado.normalizarSemana(d.data))).size, 52);
+
+  const semPolitica = structuredClone(atual);
+  delete semPolitica.politica;
+  semPolitica.produtos = semPolitica.produtos.map((p) => ({ ...p, estoqueMinimo: 4 }));
+  storage.dados[Estado.CHAVE] = JSON.stringify(semPolitica);
+  const regenerado = Estado.carregar(storage);
+  assert.equal(regenerado.estado.politica.diasCobertura, 1);
+  assert.ok(regenerado.estado.produtos.every((p) => p.estoqueMinimo === 0));
 });
 
 test("carregar e salvar não lançam com localStorage bloqueado", () => {
@@ -177,6 +196,7 @@ test("migrar v1 preserva dois produtos em duas semanas", () => {
   assert.equal(Estado.validarV1(v1), true);
   const v2 = Estado.migrarV1(v1);
   assert.equal(v2.versao, 2);
+  assert.equal(v2.politica.diasCobertura, 1);
   assert.ok(v2.dias.length >= 10);
   assert.ok(v2.dias.every((d) => Object.keys(d.valores).length > 0));
   const soma = (id) => v2.dias.reduce((s, d) => s + (d.valores[id] || 0), 0);
