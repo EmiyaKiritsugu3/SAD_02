@@ -29,6 +29,14 @@ Abra <http://localhost:8000>. O app é estático, sem build e sem dependências 
 - 57 testes automatizados (`npm test`).
 - Slides em `slides.html` e `slides.pdf`.
 
+## Documentos arquivados
+
+- `auditoria-mercado.md` — análise de mercado da versão frigorífico.
+- `contexto-e-decisoes.md` — contexto e decisões do projeto anterior.
+- `fontes-e-premissas.md` — fontes públicas e premissas do frigorífico.
+- `2026-11-26-sad-frigorifico-serido-design.md` — spec anterior.
+- `2026-11-26-sad-frigorifico-serido-mvp.md` — plano anterior.
+
 ## Por que não foi mantida como projeto separado
 
 Para a disciplina, uma tag e uma branch preservam o código e a história sem duplicar repositório, Pages e manutenção. Se o frigorífico precisar voltar a ficar **publicado** em outra URL, aí sim vale criar um repositório separado a partir desta tag.
