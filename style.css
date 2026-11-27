@@ -120,7 +120,7 @@ button { cursor: pointer; }
   font-size: 0.94rem;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.nav-item:hover { background: rgba(255, 255, 255, 0.07); color: #fff8ee; }
+.nav-item:hover { background: #43352a; color: #fff8ee; }
 .nav-item.ativo {
   background: linear-gradient(90deg, #a8492a, #8c3d22);
   color: #fff8ee;
@@ -138,8 +138,8 @@ button { cursor: pointer; }
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 .sidebar-nota { color: #b9a792; font-size: 0.74rem; line-height: 1.45; max-width: 190px; }
-.sidebar .badge.fonte { background: rgba(207, 224, 191, 0.14); color: #cfe0bf; border-color: transparent; }
-.sidebar .badge.estimativa { background: rgba(201, 154, 75, 0.2); color: #f0d49a; border-color: transparent; }
+.sidebar .badge.fonte { background: #2f3a27; color: #dcebcf; border-color: transparent; }
+.sidebar .badge.estimativa { background: #4a3a1f; color: #f6e2b5; border-color: transparent; }
 
 /* ---------- Topbar ---------- */
 .topbar {

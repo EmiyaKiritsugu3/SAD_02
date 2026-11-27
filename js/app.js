@@ -146,7 +146,7 @@ const App = (() => {
   function semanasDisponiveis() {
     const semanas = new Set();
     for (const dia of state.dias) semanas.add(Vendas.normalizarSemana(dia.data));
-    return [...semanas].sort();
+    return [...semanas].sort((a, b) => a.localeCompare(b));
   }
 
   function garantirSelecoes() {
@@ -198,17 +198,46 @@ const App = (() => {
       const escolha = Previsao.escolherMelhor(valores, 4);
       return { ...escolha, prev4: Previsao.prever(valores, escolha.metodo, escolha.params, 4) };
     }
-    const params = metodo === "ses"
-      ? { alfa: Number(state.parametros.alfa) || 0.3 }
-      : metodo === "mediaMovel"
-        ? { janela: Number(state.parametros.janela) || 4 }
-        : {};
+    let params = {};
+    if (metodo === "ses") params = { alfa: Number(state.parametros.alfa) || 0.3 };
+    else if (metodo === "mediaMovel") params = { janela: Number(state.parametros.janela) || 4 };
     return {
       metodo,
       params,
       prev4: Previsao.prever(valores, metodo, params, 4),
       metricas: Previsao.backtest(valores, metodo, params, 4),
     };
+  }
+
+  function acoesPrevisao() {
+    garantirSelecoes();
+    const semanas = semanasDisponiveis();
+    const opcoes = semanas.length
+      ? semanas.map((s) => `<option value="${s}" ${s === state.semanaReferencia ? "selected" : ""}>${fmtDataLonga(s)}</option>`).join("")
+      : `<option value="">Sem vendas</option>`;
+    return `
+      <div class="semana">
+        <label for="semana-referencia">Semana de referência</label>
+        <select id="semana-referencia" ${semanas.length ? "" : "disabled"}>${opcoes}</select>
+      </div>
+      <button class="botao" type="button" data-acao="recalcular">Recalcular</button>`;
+  }
+
+  function acoesCompras() {
+    const proxima = Vendas.proximaSemana(state.dias);
+    if (!proxima) return `<div class="semana-label">Sem vendas registradas</div>`;
+    return `<div class="semana-label">Compra para a semana de<br><strong>${fmtDataLonga(proxima)}</strong></div>`;
+  }
+
+  function acoesVendas() {
+    const ultimo = Vendas.ultimoDia(state.dias);
+    if (!ultimo) return `<div class="semana-label">Nenhuma venda registrada</div>`;
+    return `<div class="semana-label">Último dia<br><strong>${fmtDataLonga(ultimo)}</strong></div>`;
+  }
+
+  function acoesProdutos() {
+    const rotulo = state.exemplo ? "Dados de exemplo" : "Seus dados";
+    return `<span class="badge ${state.exemplo ? "" : "ok"}">${rotulo}</span>`;
   }
 
   function renderTopbar() {
@@ -224,29 +253,13 @@ const App = (() => {
     }[state.aba] || ["Compras", ""];
     titulo.textContent = info[0];
     subtitulo.textContent = info[1];
-    acoes.innerHTML = "";
-
-    if (state.aba === "previsao") {
-      garantirSelecoes();
-      const semanas = semanasDisponiveis();
-      const opcoes = semanas.length
-        ? semanas.map((s) => `<option value="${s}" ${s === state.semanaReferencia ? "selected" : ""}>${fmtDataLonga(s)}</option>`).join("")
-        : `<option value="">Sem vendas</option>`;
-      acoes.innerHTML = `
-        <div class="semana">
-          <label for="semana-referencia">Semana de referência</label>
-          <select id="semana-referencia" ${semanas.length ? "" : "disabled"}>${opcoes}</select>
-        </div>
-        <button class="botao" type="button" data-acao="recalcular">Recalcular</button>`;
-    } else if (state.aba === "compras") {
-      const proxima = Vendas.proximaSemana(state.dias);
-      acoes.innerHTML = `<div class="semana-label">${proxima ? `Compra para a semana de<br><strong>${fmtDataLonga(proxima)}</strong>` : "Sem vendas registradas"}</div>`;
-    } else if (state.aba === "vendas") {
-      const ultimo = Vendas.ultimoDia(state.dias);
-      acoes.innerHTML = `<div class="semana-label">${ultimo ? `Último dia<br><strong>${fmtDataLonga(ultimo)}</strong>` : "Nenhuma venda registrada"}</div>`;
-    } else {
-      acoes.innerHTML = `<span class="badge ${state.exemplo ? "" : "ok"}">${state.exemplo ? "Dados de exemplo" : "Seus dados"}</span>`;
-    }
+    const porAba = {
+      previsao: acoesPrevisao,
+      compras: acoesCompras,
+      vendas: acoesVendas,
+      produtos: acoesProdutos,
+    };
+    acoes.innerHTML = (porAba[state.aba] || acoesCompras)();
   }
 
   function render() {
@@ -374,8 +387,10 @@ const App = (() => {
       const metricas = dados.prev?.metricas;
       const reais = metricas?.reais || [];
       const previstos = metricas?.previstos || [];
+      const previstosTexto = previstos.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ");
+      const reaisTexto = reais.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ");
       const backtest = reais.length
-        ? `Backtest — previsto: ${previstos.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ")} | real: ${reais.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ")}`
+        ? `Backtest — previsto: ${previstosTexto} | real: ${reaisTexto}`
         : "Registre pelo menos 4 semanas até a referência para gerar a previsão e o backtest.";
       const mae = metricas?.mae;
       const mape = metricas?.mape;
