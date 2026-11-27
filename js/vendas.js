@@ -1,9 +1,8 @@
 // Vendas diárias, série semanal e resumos por período.
-const Datas = typeof module !== "undefined" && module.exports
-  ? require("./datas.js")
-  : globalThis.Datas;
-
 const Vendas = (() => {
+  const Datas = typeof module !== "undefined" && module.exports
+    ? require("./datas.js")
+    : globalThis.Datas;
   const { formatarISO, paraData, normalizarDia, normalizarSemana, adicionarDias, adicionarSemanas, fimSemana } = Datas;
 
   function salvarDia(dias, data, valores, produtos) {

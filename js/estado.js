@@ -1,9 +1,8 @@
 // Estado do Mercadinho Seridó: produtos, dias de venda e migração do formato semanal.
-const Datas = typeof module !== "undefined" && module.exports
-  ? require("./datas.js")
-  : globalThis.Datas;
-
 const Estado = (() => {
+  const Datas = typeof module !== "undefined" && module.exports
+    ? require("./datas.js")
+    : globalThis.Datas;
   const { formatarISO, normalizarDia, normalizarSemana, adicionarDias, adicionarSemanas } = Datas;
   const CHAVE = "mercadinho-serido:v2";
   const CHAVE_ANTERIOR = "mercadinho-serido:v1";
