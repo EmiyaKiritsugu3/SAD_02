@@ -58,7 +58,7 @@
 
 1. Abrir **Compras**: mostrar a lista, o custo total e os produtos sem dados.
 2. Selecionar **Arroz**: abrir o gráfico 12 + 4 e “Como calculamos”.
-3. Ir para **Previsão**: mostrar a semana de referência, os dois gráficos de 52 + 4, a tabela de erro e as próximas 4 semanas. Trocar o método e voltar para o automático.
+3. Ir para **Previsão**: mostrar a semana de referência, o gráfico de 52 + 4, a tabela de erro e as próximas 4 semanas. Trocar o método e o produto, depois voltar para o automático.
 4. Ir para **Vendas**: lançar o dia, alterar uma quantidade, salvar e alternar **Dia / Semana / Mês / Ano** no resumo.
 5. Voltar para **Compras**: mostrar a previsão e a compra recalculadas.
 6. Ir para **Produtos**: mostrar o cadastro, o exemplo e o “Limpar dados”.
@@ -66,7 +66,7 @@
 
 ## 9. Entrega e limites (50 s)
 
-- **Entrega:** 4 abas, previsão com 52 + 4, compra sugerida, exemplo rotulado, dados no navegador, 74 testes e deploy no GitHub Pages.
+- **Entrega:** 4 abas, previsão com 52 + 4, compra sugerida, exemplo rotulado, dados no navegador, 75 testes e deploy no GitHub Pages.
 - **Limites:** estoque manual; sem lead time, validade, orçamento, fornecedores, CSV ou multiusuário.
 - **Próximo passo:** validar com um mercadinho real e, depois, integrar ao caixa/ERP.
 - A versão frigorífico ficou preservada como legado no Git.
@@ -90,7 +90,7 @@ Menos de 4 semanas: sem previsão. De 4 a 7: média móvel. A partir de 8: backt
 O MVP não modela validade. É uma evolução natural: incluir validade, lead time e alerta de vencimento. Hoje o dono controla isso manualmente.
 
 **“Como você sabe que está certo?”**
-74 testes automatizados, smoke test com Playwright e um conjunto de exemplo reproduzível. A validação com dados reais de um mercadinho é o próximo passo.
+75 testes automatizados, smoke test com Playwright e um conjunto de exemplo reproduzível. A validação com dados reais de um mercadinho é o próximo passo.
 
 **“O que é real e o que é ilustrativo?”**
 O conjunto inicial de 10 produtos e 52 semanas é ilustrativo e está rotulado. Os dados que o dono digita são reais e ficam no navegador. Não há dados públicos nesta versão.
@@ -100,10 +100,10 @@ Para manter o MVP simples e não duplicar um PDV. O dono atualiza o estoque depo
 
 ## Checklist antes de apresentar
 
-- [ ] `npm test` verde (74 testes).
+- [ ] `npm test` verde (75 testes).
 - [ ] App aberto em `http://localhost:8000` com o exemplo carregado.
 - [ ] Slides em `http://localhost:8000/slides.html` ou `slides.pdf`.
 - [ ] Abrir a aba Compras e deixar o Arroz selecionado.
-- [ ] Abrir a aba Previsão e conferir os dois gráficos de 52 + 4.
+- [ ] Abrir a aba Previsão e conferir o gráfico de 52 + 4.
 - [ ] Testar a demo uma vez: Previsão → método → Vendas → lançar o dia → alternar período → salvar → Compras.
 - [ ] Conferir o link do Pages no encerramento.

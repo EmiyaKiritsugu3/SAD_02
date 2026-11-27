@@ -12,7 +12,7 @@ const App = (() => {
     metodo: "auto",
     parametros: { janela: 4, alfa: 0.3 },
     semanaReferencia: null,
-    produtosPrevisao: [],
+    produtoPrevisao: null,
     filtro: "",
     produtoEditando: null,
     erroPersistencia: null,
@@ -151,21 +151,15 @@ const App = (() => {
 
   function garantirSelecoes() {
     const ids = state.produtos.map((p) => p.id);
-    const alvo = Math.min(2, ids.length);
-    const atuais = [...new Set((state.produtosPrevisao || []).filter((id) => ids.includes(id)))];
-    if (atuais.length < alvo) {
+    if (!ids.includes(state.produtoPrevisao)) {
       const ranking = state.produtos
         .map((p) => {
           const valores = Vendas.serieSemanal(state.dias, p.id).valores;
           return { id: p.id, total: valores.reduce((soma, valor) => soma + valor, 0) };
         })
         .sort((a, b) => b.total - a.total);
-      for (const item of ranking) {
-        if (atuais.length >= alvo) break;
-        if (!atuais.includes(item.id)) atuais.push(item.id);
-      }
+      state.produtoPrevisao = ranking[0]?.id ?? null;
     }
-    state.produtosPrevisao = atuais.slice(0, alvo);
     const semanas = semanasDisponiveis();
     if (!semanas.includes(state.semanaReferencia)) {
       state.semanaReferencia = semanas.at(-1) ?? null;
@@ -200,7 +194,10 @@ const App = (() => {
     }
     let params = {};
     if (metodo === "ses") params = { alfa: Number(state.parametros.alfa) || 0.3 };
-    else if (metodo === "mediaMovel") params = { janela: Number(state.parametros.janela) || 4 };
+    else if (metodo === "mediaMovel") {
+      const janela = Math.min(Number(state.parametros.janela) || 4, valores.length);
+      params = { janela };
+    }
     return {
       metodo,
       params,
@@ -321,7 +318,10 @@ const App = (() => {
     garantirSelecoes();
     normalizarParametros();
     const mapa = previsoesReferencia();
-    const referencia = state.semanaReferencia || semanasDisponiveis().at(-1);
+    const semanas = semanasDisponiveis();
+    const referencia = state.semanaReferencia || semanas.at(-1);
+    const ultimaSemana = semanas.at(-1);
+    const referenciaAnterior = Boolean(referencia && ultimaSemana && referencia < ultimaSemana);
     const opcoesMetodo = [
       ["auto", "Automático (menor MAE)"],
       ["mediaMovel", "Média móvel"],
@@ -343,78 +343,78 @@ const App = (() => {
             <select data-campo="metodo">${opcoesMetodo}</select>
           </label>
           <label class="campo">Janela da média móvel
-            <input type="number" data-campo="janela" min="1" max="12" step="1" value="${state.parametros.janela}">
+            <input type="number" data-campo="janela" min="1" max="12" step="1" value="${state.parametros.janela}" ${state.metodo === "auto" ? "disabled" : ""}>
           </label>
           <label class="campo">Alfa da suavização
-            <input type="number" data-campo="alfa" min="0.05" max="0.95" step="0.05" value="${state.parametros.alfa}">
+            <input type="number" data-campo="alfa" min="0.05" max="0.95" step="0.05" value="${state.parametros.alfa}" ${state.metodo === "auto" ? "disabled" : ""}>
           </label>
         </div>
-        <p class="nota">A semana de referência no topo corta o histórico. O backtest treina antes das últimas 4 semanas e compara com o realizado. MAE é o erro médio absoluto; MAPE, o erro percentual médio. O método escolhido também alimenta a aba Compras.</p>
+        <p class="nota">A semana de referência no topo corta o histórico. O backtest treina antes das últimas 4 semanas e compara com o realizado. MAE é o erro médio absoluto; MAPE, o erro percentual médio. O método escolhido também alimenta a aba Compras. A escolha vale para esta sessão; no modo manual, o método é aplicado mesmo com pouco histórico e o backtest usa as semanas disponíveis.</p>
       </section>`;
 
-    const graficos = state.produtosPrevisao.map((id, indice) => {
-      const produto = Produtos.porId(state.produtos, id);
-      if (!produto) return "";
-      const dados = mapa[produto.id];
-      const temPrevisao = Boolean(dados.prev);
-      const hist = dados.valores.slice(-52);
-      const histSemanas = dados.semanas.slice(-52);
-      const opcoesProduto = state.produtos.map((p) => `<option value="${esc(p.id)}" ${p.id === produto.id ? "selected" : ""}>${esc(p.nome)}</option>`).join("");
-      const futuras = temPrevisao
-        ? dados.prev.prev4.map((_, i) => fmtData(Vendas.adicionarSemanas(histSemanas.at(-1), i + 1)))
+    const produto = Produtos.porId(state.produtos, state.produtoPrevisao) || state.produtos[0];
+    state.produtoPrevisao = produto.id;
+    const dados = mapa[produto.id];
+    const temPrevisao = Boolean(dados.prev);
+    const hist = dados.valores.slice(-52);
+    const histSemanas = dados.semanas.slice(-52);
+    const opcoesProduto = state.produtos.map((p) => `<option value="${esc(p.id)}" ${p.id === produto.id ? "selected" : ""}>${esc(p.nome)}</option>`).join("");
+    const futuras = temPrevisao
+      ? dados.prev.prev4.map((_, i) => fmtData(Vendas.adicionarSemanas(histSemanas.at(-1), i + 1)))
+      : [];
+
+    let grafico = `<p class="sem-dados">Sem vendas registradas até a semana de referência.</p>`;
+    if (hist.length > 0) {
+      const labels = [...histSemanas.map(fmtData), ...futuras];
+      const historico = [...hist, ...new Array(futuras.length).fill(null)];
+      const linhaPrevisao = temPrevisao
+        ? [...new Array(Math.max(0, hist.length - 1)).fill(null), hist.at(-1), ...dados.prev.prev4]
         : [];
+      grafico = Charts.linha({
+        series: temPrevisao
+          ? [
+              { nome: "Histórico", valores: historico, cor: "#b5522f" },
+              { nome: "Previsão", valores: linhaPrevisao, cor: "#5d6b4a", tracejado: true },
+            ]
+          : [{ nome: "Histórico", valores: historico, cor: "#b5522f" }],
+        labels,
+        width: 1000,
+        height: 360,
+        rotuloY: produto.unidade,
+        ariaLabel: `${produto.nome}: histórico de até 52 semanas e previsão das próximas 4.`,
+      });
+    }
 
-      let grafico = `<p class="sem-dados">Sem vendas registradas para este produto.</p>`;
-      if (hist.length > 0) {
-        const labels = [...histSemanas.map(fmtData), ...futuras];
-        const historico = [...hist, ...new Array(futuras.length).fill(null)];
-        const linhaPrevisao = temPrevisao
-          ? [...new Array(Math.max(0, hist.length - 1)).fill(null), hist.at(-1), ...dados.prev.prev4]
-          : [];
-        grafico = Charts.linha({
-          series: temPrevisao
-            ? [
-                { nome: "Histórico", valores: historico, cor: "#b5522f" },
-                { nome: "Previsão", valores: linhaPrevisao, cor: "#5d6b4a", tracejado: true },
-              ]
-            : [{ nome: "Histórico", valores: historico, cor: "#b5522f" }],
-          labels,
-          height: 340,
-          rotuloY: produto.unidade,
-        });
-      }
+    const metricas = dados.prev?.metricas;
+    const reais = metricas?.reais || [];
+    const previstos = metricas?.previstos || [];
+    const previstosTexto = previstos.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ");
+    const reaisTexto = reais.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ");
+    const backtest = reais.length
+      ? `Backtest — previsto: ${previstosTexto} | real: ${reaisTexto}`
+      : "Registre pelo menos 4 semanas até a referência para gerar a previsão e o backtest.";
+    const mae = metricas?.mae;
+    const mape = metricas?.mape;
 
-      const metricas = dados.prev?.metricas;
-      const reais = metricas?.reais || [];
-      const previstos = metricas?.previstos || [];
-      const previstosTexto = previstos.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ");
-      const reaisTexto = reais.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ");
-      const backtest = reais.length
-        ? `Backtest — previsto: ${previstosTexto} | real: ${reaisTexto}`
-        : "Registre pelo menos 4 semanas até a referência para gerar a previsão e o backtest.";
-      const mae = metricas?.mae;
-      const mape = metricas?.mape;
-
-      return `
-        <section class="card" aria-labelledby="prev-${esc(produto.id)}">
-          <div class="card-head">
-            <div>
-              <h2 id="prev-${esc(produto.id)}">${esc(produto.nome)}</h2>
-              <p>Histórico de até 52 semanas e previsão das próximas 4.</p>
-            </div>
-            <label class="campo campo-produto">Produto
-              <select data-previsao-select="${indice}" aria-label="Produto do gráfico ${indice + 1}">${opcoesProduto}</select>
-            </label>
+    const graficoProduto = `
+      <section class="card span-2" aria-labelledby="prev-${esc(produto.id)}">
+        <div class="card-head">
+          <div>
+            <h2 id="prev-${esc(produto.id)}">${esc(produto.nome)}</h2>
+            <p>Histórico de até 52 semanas e previsão das próximas 4.</p>
           </div>
-          ${grafico}
-          ${temPrevisao ? `<div class="metricas">
-            <span>Método: <strong>${esc(metodoDetalhe(dados.prev))}</strong></span>
-            <span>MAE: <strong>${fmtQtd(mae)} ${esc(produto.unidade)}</strong></span>
-            <span>MAPE: <strong>${fmtPct(mape)}</strong></span>
-          </div>` : ""}
-          <p class="nota">${esc(backtest)}</p>
-        </section>`;
-    }).join("");
+          <label class="campo campo-produto">Produto
+            <select data-previsao-select aria-label="Produto do gráfico">${opcoesProduto}</select>
+          </label>
+        </div>
+        ${grafico}
+        ${temPrevisao ? `<div class="metricas">
+          <span>Método: <strong>${esc(metodoDetalhe(dados.prev))}</strong></span>
+          <span>MAE: <strong>${fmtQtd(mae)} ${esc(produto.unidade)}</strong></span>
+          <span>MAPE: <strong>${fmtPct(mape)}</strong></span>
+        </div>` : ""}
+        <p class="nota">${esc(backtest)}</p>
+      </section>`;
 
     const linhasMetricas = state.produtos.map((produto) => {
       const prev = mapa[produto.id].prev;
@@ -442,7 +442,7 @@ const App = (() => {
 
     app.innerHTML = `<div class="grid-2">
       ${controles}
-      ${graficos}
+      ${graficoProduto}
       <section class="card" aria-labelledby="titulo-metricas">
         <div class="card-head">
           <div>
@@ -462,7 +462,7 @@ const App = (() => {
         <div class="card-head">
           <div>
             <h2 id="titulo-proximas">Próximas 4 semanas</h2>
-            <p>Previsão usada como entrada da lista de compras.</p>
+            <p>Previsão das 4 semanas seguintes à semana de referência.</p>
           </div>
         </div>
         <div class="tabela-wrap">
@@ -472,6 +472,7 @@ const App = (() => {
             <tbody>${linhasProximas}</tbody>
           </table>
         </div>
+        ${referenciaAnterior ? `<p class="nota">A lista de Compras usa sempre a última semana lançada; a referência acima é só para consulta.</p>` : ""}
       </section>
       <section class="card span-2" aria-labelledby="titulo-como">
         <div class="card-head">
@@ -1029,7 +1030,8 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       else if (acao === "recalcular") {
         render();
         toast("Previsão recalculada.");
-        document.getElementById("titulo-metricas")?.focus();
+        const alvo = document.getElementById("titulo-metricas") || document.getElementById("conteudo");
+        alvo?.focus();
       }
       else if (acao === "salvar-dia") salvarDia();
       else if (acao === "excluir-dia") excluirDia();
@@ -1102,15 +1104,9 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         render();
         document.querySelector(`[data-campo="${campo}"]`)?.focus();
       } else if (event.target.matches("[data-previsao-select]")) {
-        const indice = Number(event.target.dataset.previsaoSelect);
-        const escolhido = event.target.value;
-        const selecao = [...state.produtosPrevisao];
-        const conflito = selecao.findIndex((id, i) => id === escolhido && i !== indice);
-        if (conflito >= 0) selecao[conflito] = selecao[indice];
-        selecao[indice] = escolhido;
-        state.produtosPrevisao = selecao;
+        state.produtoPrevisao = event.target.value;
         render();
-        document.querySelector(`[data-previsao-select="${indice}"]`)?.focus();
+        document.querySelector("[data-previsao-select]")?.focus();
       } else if (event.target.id === "dia-data") {
         if (!event.target.value) {
           render();

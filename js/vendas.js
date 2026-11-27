@@ -140,7 +140,7 @@ const Vendas = (() => {
   }
 
   function atrasada(ultima, hoje = normalizarSemana(new Date())) {
-    return Boolean(ultima && adicionarSemanas(ultima, 2) < hoje);
+    return Boolean(ultima && adicionarSemanas(ultima, 1) < hoje);
   }
 
   function totalDia(valores) {
