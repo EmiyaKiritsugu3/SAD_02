@@ -9,7 +9,7 @@
 npm test
 ```
 
-- **74 testes** com `node:test`, cobrindo estado/persistência, migração v1→v2, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento.
+- **75 testes** com `node:test`, cobrindo estado/persistência, migração v1→v2, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento.
 - `node --check` em todos os arquivos de `js/`.
 - `pdfinfo slides.pdf` → **10 páginas**.
 
@@ -27,10 +27,10 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 
 1. **Compras:** a lista deve ter 10 produtos, o total deve ser **R$ 2.319,44** e o gráfico do Arroz deve aparecer.
 2. **Backtest da compra:** abra “Como calculamos” e confira a tabela com 4 linhas (Semana, Previsto, Real).
-3. **Previsão:** a aba deve mostrar a semana de referência (`23/11/2026`), **52 opções** de semana, dois gráficos de **52 + 4** e os dois produtos mais vendidos selecionados (Pão francês e Leite 1 L).
+3. **Previsão:** a aba deve mostrar a semana de referência (`23/11/2026`), **52 opções** de semana, um gráfico de **52 + 4** e o produto mais vendido selecionado (Pão francês).
 4. **Método:** troque para **Média móvel**; o badge deve virar **Manual**, a tabela de erro deve mostrar “Média móvel (4 semanas)” e o método deve continuar valendo em Compras. Volte para **Automático**.
-5. **Produtos do gráfico:** troque o produto do primeiro gráfico; os dois seletores não podem repetir o mesmo produto.
-6. **Semana de referência:** escolha uma semana mais antiga; o histórico e a previsão devem ser recalculados, sem mexer nos lançamentos de Vendas.
+5. **Produto do gráfico:** troque o produto no seletor; o histórico, a previsão e as métricas devem ser recalculados.
+6. **Semana de referência:** escolha uma semana mais antiga; o histórico e a previsão devem ser recalculados, sem mexer nos lançamentos de Vendas. A lista de Compras continua na última semana lançada.
 7. **Tabelas da Previsão:** a tabela de erro deve ter 10 produtos; a de próximas 4 semanas, 10 produtos e 4 colunas de datas.
 8. **Filtro em Compras:** digite `cafe`; deve aparecer **Café 500 g**, com o badge **1 de 10**.
 9. **Seleção em Compras:** clique em Feijão; o foco deve ir para o título do gráfico e a linha deve ficar com `aria-selected="true"`.
@@ -58,11 +58,11 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 
 ## Última execução
 
-- `npm test` → **74/74 passando**.
+- `npm test` → **75/75 passando**.
 - Smoke do app em 1440×950 e 360×800 → sem erros de console, sem overflow.
 - Compras → total **R$ 2.319,44**.
 - Vendas (exemplo em 27/11/2026) → Dia **R$ 814,60**, Semana **R$ 3.555,50**, Mês **R$ 14.496,90**, Ano **R$ 158.168,40**.
-- Previsão → 52 opções de semana, 2 gráficos de 52 + 4, 10 linhas na tabela de erro, 10 produtos × 4 semanas na tabela de próximas semanas.
+- Previsão → 52 opções de semana, 1 gráfico de 52 + 4, 10 linhas na tabela de erro, 10 produtos × 4 semanas na tabela de próximas semanas.
 - Salvar dia → previsão/compra recalculadas; `localStorage` v2 com 362 dias no exemplo.
 - Falha de `setItem` → banner persistente + toast de erro.
 - Nome de 60 caracteres → sem overflow em 360 px.

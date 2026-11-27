@@ -321,6 +321,7 @@ tbody tr:last-child td { border-bottom: none; }
   font-weight: 500;
 }
 .campo input:focus, .campo select:focus { border-color: var(--terracotta); outline: 2px solid rgba(181, 82, 47, 0.18); outline-offset: 0; }
+.campo input:disabled, .campo select:disabled { opacity: 0.55; cursor: not-allowed; }
 .campo input[aria-invalid="true"] { border-color: var(--danger); }
 .acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
 .acoes-fim { margin-left: auto; }

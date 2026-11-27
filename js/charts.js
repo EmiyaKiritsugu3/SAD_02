@@ -26,7 +26,7 @@ const Charts = (() => {
     return `${nfDec.format((Number(n) || 0) * 100)}%`;
   }
 
-  function linha({ series = [], labels = [], width = 760, height = 290, rotuloY = "kg", formatoY = formatarNumero, cor = "#b5522f" } = {}) {
+  function linha({ series = [], labels = [], width = 760, height = 290, rotuloY = "kg", formatoY = formatarNumero, cor = "#b5522f", ariaLabel = "" } = {}) {
     const pad = { top: 30, right: 24, bottom: 40, left: 68 };
     const w = width - pad.left - pad.right;
     const h = height - pad.top - pad.bottom;
@@ -38,7 +38,8 @@ const Charts = (() => {
     const x = (i) => pad.left + (labels.length <= 1 ? w / 2 : (i / (labels.length - 1)) * w);
     const y = (v) => pad.top + h - ((v - min) / (max - min)) * h;
     const partes = [];
-    partes.push(`<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Gráfico de linha: ${escapeHtml(rotuloY)}">`);
+    const rotulo = ariaLabel || `Gráfico de linha: ${rotuloY}`;
+    partes.push(`<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(rotulo)}">`);
 
     for (let i = 0; i <= 4; i++) {
       const val = min + passoY * i;

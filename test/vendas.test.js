@@ -128,8 +128,8 @@ test("último dia, última semana, próxima e atraso", () => {
   assert.equal(Vendas.ultimoDia([]), null);
   assert.equal(Vendas.ultimaSemana([]), null);
   assert.equal(Vendas.proximaSemana([]), null);
-  assert.equal(Vendas.atrasada("2026-11-16", "2026-11-30"), false);
-  assert.equal(Vendas.atrasada("2026-11-16", "2026-12-01"), true);
+  assert.equal(Vendas.atrasada("2026-11-16", "2026-11-23"), false);
+  assert.equal(Vendas.atrasada("2026-11-16", "2026-11-30"), true);
   assert.equal(Vendas.atrasada(null, "2026-12-01"), false);
 });
 

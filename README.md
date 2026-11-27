@@ -27,7 +27,7 @@ A aba **Previsão** mostra o histórico semanal de até 52 semanas, a previsão 
 - **Automático:** testa média móvel, suavização exponencial e regressão; escolhe o menor MAE no backtest.
 - **Manual:** fixa o método e ajusta a janela da média móvel ou o alfa da suavização.
 
-Dois produtos selecionáveis aparecem lado a lado, cada um com seu gráfico. As tabelas mostram **todos os produtos**: erro (MAE/MAPE) e as próximas 4 semanas. O método escolhido também alimenta a aba Compras.
+Um produto selecionável aparece em um gráfico largo, com o histórico e a previsão. As tabelas mostram **todos os produtos**: erro (MAE/MAPE) e as próximas 4 semanas. O método escolhido também alimenta a aba Compras.
 
 ### 4. Compras
 
@@ -47,7 +47,7 @@ O total da compra aparece no topo. O estoque é atualizado manualmente pelo dono
 - Menos de 4 semanas: sem previsão.
 - De 4 a 7 semanas: média móvel.
 - A partir de 8 semanas: backtest nas últimas 4 semanas e escolha automática pelo menor MAE.
-- Gráfico com até 52 semanas + 4 previstas, dois produtos selecionáveis.
+- Gráfico com até 52 semanas + 4 previstas, com um produto selecionável.
 - A semana corrente entra no histórico com os dias já lançados; a previsão é revista quando ela fecha.
 - “Como o SAD prevê” e a tabela de erro mostram método, MAE, MAPE e backtest.
 
@@ -80,7 +80,7 @@ Abra:
 npm test
 ```
 
-**74 testes** com `node:test`, cobrindo estado/persistência, migração do formato semanal, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as quatro abas, o CRUD de produtos, o lançamento diário, os períodos, a previsão 52 + 4, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
+**75 testes** com `node:test`, cobrindo estado/persistência, migração do formato semanal, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as quatro abas, o CRUD de produtos, o lançamento diário, os períodos, a previsão 52 + 4, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
 
 ## Estrutura
 

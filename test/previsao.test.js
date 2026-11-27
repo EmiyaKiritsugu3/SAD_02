@@ -54,6 +54,12 @@ test("serieAte corta até a semana de referência", () => {
   assert.deepEqual(r.semanas, [40, 41]);
 });
 
+test("serieAte com referência anterior ao início devolve série vazia", () => {
+  const r = P.serieAte([10, 20, 30], [40, 41, 42], 39);
+  assert.deepEqual(r.serie, []);
+  assert.deepEqual(r.semanas, []);
+});
+
 test("serieAte com referência inexistente usa a série completa", () => {
   const r = P.serieAte([10, 20, 30], [1, 2, 3], 99);
   assert.deepEqual(r.serie, [10, 20, 30]);
