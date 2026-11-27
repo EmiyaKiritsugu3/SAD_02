@@ -59,3 +59,35 @@ test("serieAte com referência inexistente usa a série completa", () => {
   assert.deepEqual(r.serie, [10, 20, 30]);
   assert.deepEqual(r.semanas, [1, 2, 3]);
 });
+
+test("paraSerie não prevê com menos de 4 semanas", () => {
+  assert.equal(P.paraSerie([10, 20, 30]), null);
+  assert.equal(P.paraSerie([]), null);
+});
+
+test("paraSerie usa média móvel entre 4 e 7 semanas", () => {
+  const r = P.paraSerie([10, 10, 10, 10, 10]);
+  assert.equal(r.metodo, "mediaMovel");
+  assert.deepEqual(r.prev4, [10, 10, 10, 10]);
+});
+
+test("paraSerie escolhe automático a partir de 8 semanas", () => {
+  const r = P.paraSerie([10, 20, 30, 40, 50, 60, 70, 80]);
+  assert.ok(["mediaMovel", "ses", "regressao"].includes(r.metodo));
+  assert.equal(r.prev4.length, 4);
+});
+
+test("paraSerie não projeta valores negativos", () => {
+  const r = P.paraSerie([100, 80, 60, 40, 20, 10, 5, 0]);
+  assert.ok(r.prev4.every((v) => Number.isFinite(v) && v >= 0));
+});
+
+test("serieAte aceita semanas ISO", () => {
+  const r = P.serieAte(
+    [10, 20, 30],
+    ["2026-11-02", "2026-11-09", "2026-11-16"],
+    "2026-11-09",
+  );
+  assert.deepEqual(r.serie, [10, 20]);
+  assert.deepEqual(r.semanas, ["2026-11-02", "2026-11-09"]);
+});

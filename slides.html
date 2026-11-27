@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SeridóFrigo — SAD de planejamento semanal</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5522f'/%3E%3Ctext x='32' y='43' font-family='Georgia' font-size='30' fill='%23fff8ee' text-anchor='middle'%3ESF%3C/text%3E%3C/svg%3E">
+  <title>Mercadinho Seridó — SAD de compra semanal</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5522f'/%3E%3Ctext x='32' y='43' font-family='Georgia' font-size='30' fill='%23fff8ee' text-anchor='middle'%3EMS%3C/text%3E%3C/svg%3E">
   <style>
     @font-face {
       font-family: "Fraunces";
@@ -38,6 +38,17 @@
     }
 
     * { box-sizing: border-box; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     html, body { margin: 0; height: 100%; }
     body {
       overflow: hidden;
@@ -667,324 +678,224 @@
     <section class="slide capa ativo" data-slide="0">
       <div>
         <div class="kicker">DCT2403 · Sistemas de Apoio à Decisão · UFRN/CERES</div>
-        <div class="capa-conteudo" style="margin-top: 7vh;">
-          <h1>Seridó<br>Frigo</h1>
-          <p class="subtitulo">Um SAD para a decisão semanal de um frigorífico de caprinos e ovinos em Caicó/RN.</p>
+        <div class="capa-conteudo" style="margin-top: 6vh;">
+          <h1 style="font-size: clamp(3.4rem, 9vw, 9rem);">Mercadinho<br>Seridó</h1>
+          <p class="subtitulo">Um SAD para a decisão semanal de compra em um mercadinho de bairro em Caicó/RN.</p>
         </div>
       </div>
       <div class="rodape">
         <span><em>Sistema + slides</em> · Dezembro/2026</span>
-        <span>Camada de decisão · não é um ERP</span>
+        <span>Camada de decisão · não é um PDV/ERP</span>
       </div>
-      <div class="notas">Abertura: “Este não é um assistente genérico de AHP. É um SAD para uma decisão específica: quanto abater, quanto estocar e de quem comprar, toda semana, em um frigorífico de Caicó/RN.”</div>
+      <div class="notas">Abertura: “Este é um SAD para uma decisão específica: quanto comprar de cada produto na próxima semana, em um mercadinho de bairro em Caicó/RN. Ele não é um PDV e não é um ERP.”</div>
     </section>
 
-    <!-- 02 -->
     <section class="slide" data-slide="1">
       <div class="kicker">01 · Contexto</div>
-      <div class="slide-numero">02 / 12</div>
+      <div class="slide-numero">02 / 10</div>
       <div class="corpo">
         <h2>O problema não é decidir uma vez. É decidir toda semana.</h2>
         <div class="contexto-grid" style="margin-top: clamp(18px, 2.5vw, 30px);">
           <div class="contexto-texto">
-            <p>O frigorífico compra animais, abate, estoca e vende. A cada segunda-feira, o gestor precisa decidir o tamanho da semana — e cada decisão errada aparece rápido: ruptura, câmara cheia, animal comprado caro ou lote sem conformidade.</p>
-            <p>A planilha ajuda a registrar o passado. Ela não ajuda a decidir o próximo passo.</p>
+            <p>O mercadinho compra, estoca e vende. Toda semana o dono precisa decidir quanto repor de cada produto — e o erro aparece rápido: falta na prateleira, sobra no estoque ou capital parado.</p>
+            <p>A planilha registra o que passou. Ela não responde à pergunta de segunda-feira: <strong>quanto comprar agora?</strong></p>
             <span class="tag terra">Caicó/RN · Seridó</span>
             <div class="fluxo-sad" style="margin-top: 14px;">
-              <span>SEG</span><b>→</b><span>Previsão</span><b>→</b><span>Plano</span><b>→</b><span>Compra</span><b>→</b><span>Abate</span>
+              <span>VENDAS</span><b>→</b><span>PREVISÃO</span><b>→</b><span>COMPRA</span>
             </div>
           </div>
           <div class="numeros">
-            <div class="cartao"><span class="numero-grande">15.157<small>caprinos em Caicó/RN · IBGE PPM 2025</small></span></div>
-            <div class="cartao"><span class="numero-grande">24.909<small>ovinos em Caicó/RN · IBGE PPM 2025</small></span></div>
-            <div class="cartao"><span class="numero-grande">180<small>animais/semana · capacidade do caso</small></span></div>
+            <div class="cartao"><span class="numero-grande">10<small>produtos no exemplo</small></span></div>
+            <div class="cartao"><span class="numero-grande">12<small>semanas de histórico</small></span></div>
+            <div class="cartao"><span class="numero-grande">4<small>semanas previstas</small></span></div>
           </div>
         </div>
       </div>
-      <div class="rodape"><span>Fonte: IBGE, Pesquisa da Pecuária Municipal 2025.</span><span>Capacidade e demanda são premissas do caso.</span></div>
-      <div class="notas">Contexto: o frigorífico é pequeno, regional e tem uma rotina semanal. Os números de rebanho são públicos (IBGE). A capacidade de 180 animais/semana é uma premissa do caso, não um dado do IBGE.</div>
+      <div class="rodape"><span>Rotina semanal de um pequeno mercadinho.</span><span>O exemplo é ilustrativo; o dono usa os próprios dados.</span></div>
+      <div class="notas">Contexto: o mercadinho é pequeno, regional e tem uma rotina semanal. Os números são do conjunto de exemplo: 10 produtos, 12 semanas de vendas e previsão de 4 semanas.</div>
     </section>
 
-    <!-- 03 -->
     <section class="slide" data-slide="2">
       <div class="kicker">02 · Problema</div>
-      <div class="slide-numero">03 / 12</div>
+      <div class="slide-numero">03 / 10</div>
       <div class="corpo">
-        <h2>Planilha + intuição = ruptura, excesso e compra ruim.</h2>
+        <h2>Falta, sobra e compra no escuro.</h2>
         <div class="problema-grid" style="margin-top: clamp(18px, 2.5vw, 30px);">
-          <div class="cartao problema-card">
-            <span class="indice">01</span>
-            <h3>Ruptura</h3>
-            <p>O pedido chega, o estoque não. Perde-se a venda e a confiança do açougue ou da feira.</p>
-          </div>
-          <div class="cartao problema-card">
-            <span class="indice">02</span>
-            <h3>Excesso</h3>
-            <p>A câmara enche, o capital fica parado e a validade corre. O que era margem vira perda.</p>
-          </div>
-          <div class="cartao problema-card">
-            <span class="indice">03</span>
-            <h3>Compra ruim</h3>
-            <p>O preço por kg não conta prazo, qualidade, confiabilidade e conformidade sanitária.</p>
-          </div>
+          <div class="cartao problema-card"><span class="indice">01</span><h3>Ruptura</h3><p>O cliente procura, o produto não está na prateleira. Perde-se a venda e a confiança.</p></div>
+          <div class="cartao problema-card"><span class="indice">02</span><h3>Excesso</h3><p>O estoque enche, o dinheiro fica parado e a validade corre. O que era margem vira perda.</p></div>
+          <div class="cartao problema-card"><span class="indice">03</span><h3>Compra sem histórico</h3><p>O dono compra por memória: repete o mês passado, ignora tendência e não sabe o erro da previsão.</p></div>
         </div>
-        <div class="citacao">“A virada: de um AHP genérico para um SAD de um frigorífico real — um usuário, uma decisão, um domínio.”</div>
+        <div class="citacao">“O recorte: um usuário, uma decisão, um domínio.”</div>
       </div>
-      <div class="rodape"><span>O recorte da disciplina pede uma necessidade específica.</span><span>O AHP continua — como módulo de decisão de compra.</span></div>
-      <div class="notas">Problema: não é falta de sistema, é falta de decisão. A planilha registra; o SAD projeta. A fala do professor sobre “muito genérico” virou o recorte: um usuário, uma decisão, um domínio.</div>
+      <div class="rodape"><span>A planilha registra o passado.</span><span>O SAD projeta o próximo passo.</span></div>
+      <div class="notas">Problema: não é falta de sistema, é falta de decisão. A planilha registra; o SAD projeta. O recorte atende ao pedido da disciplina: um usuário, uma decisão e um domínio específico.</div>
     </section>
 
-    <!-- 04 -->
     <section class="slide" data-slide="3">
       <div class="kicker">03 · Usuário e decisão</div>
-      <div class="slide-numero">04 / 12</div>
+      <div class="slide-numero">04 / 10</div>
       <div class="corpo">
         <h2>Quem decide, o que decide, quando decide.</h2>
         <div class="decisao-grid" style="margin-top: clamp(18px, 2.5vw, 30px);">
           <div class="persona cartao">
-            <div class="avatar">GS</div>
-            <h3>Gestor de produção e estoque</h3>
-            <p>Frigorífico Serra do Seridó · Caicó/RN</p>
-            <p>Toda segunda-feira, antes da escala de abate e das compras da semana.</p>
+            <div class="avatar">MS</div>
+            <h3>Dono do mercadinho</h3>
+            <p>Mercadinho Seridó · Caicó/RN</p>
+            <p>Toda semana, antes de fazer o pedido de compra.</p>
             <span class="tag ouro">Persona e dados ilustrativos</span>
           </div>
           <div class="fluxo">
-            <div class="fluxo-item"><span class="n">1</span><div><strong>Quanto abater?</strong><small>Caprinos e ovinos, por espécie, dentro da capacidade e da câmara.</small></div></div>
-            <div class="fluxo-item"><span class="n">2</span><div><strong>Quanto estocar?</strong><small>Cobertura, estoque de segurança, validade e risco de ruptura.</small></div></div>
-            <div class="fluxo-item"><span class="n">3</span><div><strong>De quem comprar?</strong><small>Preço, qualidade, prazo, confiabilidade — e conformidade sanitária.</small></div></div>
-            <div class="gap"><strong>Saída:</strong> plano da semana + necessidade de compra + alertas + fornecedor recomendado.</div>
+            <div class="fluxo-item"><span class="n">1</span><div><strong>O que vendeu?</strong><small>Histórico semanal por produto, com quantidade e receita.</small></div></div>
+            <div class="fluxo-item"><span class="n">2</span><div><strong>Quanto vai vender?</strong><small>Previsão automática da próxima semana, com erro medido.</small></div></div>
+            <div class="fluxo-item"><span class="n">3</span><div><strong>Quanto comprar?</strong><small>Previsão + estoque mínimo − estoque atual, por produto.</small></div></div>
+            <div class="gap"><strong>Saída:</strong> lista de compras com quantidade e custo estimado.</div>
           </div>
         </div>
       </div>
       <div class="rodape"><span>A decisão é recorrente; o sistema precisa ser usado toda semana.</span><span>É isso que separa um SAD de um projeto de compra única.</span></div>
-      <div class="notas">Usuário: o gestor. A decisão é recorrente. O sistema não é um ERP: ele não registra a operação inteira, ele decide em cima dos dados que já existem.</div>
+      <div class="notas">Usuário: o dono. A decisão é recorrente: quanto comprar de cada produto na próxima semana. O sistema não é um ERP: ele decide em cima dos dados que o dono já registra.</div>
     </section>
 
-    <!-- 05 -->
     <section class="slide" data-slide="4">
       <div class="kicker">04 · Arquitetura SAD</div>
-      <div class="slide-numero">05 / 12</div>
+      <div class="slide-numero">05 / 10</div>
       <div class="corpo">
         <h2>Dados, modelos, conhecimento e interface — no mesmo fluxo.</h2>
         <div class="sad-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
-          <div class="cartao sad-card"><span class="simbolo">01</span><h3>Dados</h3><p>IBGE, Embrapa/Cepea e CSV do frigorífico. Rebanho, preços, custos, demanda e estoque.</p></div>
-          <div class="cartao sad-card"><span class="simbolo">02</span><h3>Modelos</h3><p>Previsão, estoque de segurança, plano semanal, cenários e AHP de fornecedores.</p></div>
-          <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Gate sanitário, capacidade de abate, câmara fria e estoque mínimo.</p></div>
-          <div class="cartao sad-card"><span class="simbolo">04</span><h3>Interface</h3><p>Painel, previsão, plano, ranking de fornecedores e página de dados e premissas.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">01</span><h3>Dados</h3><p>Produtos, vendas semanais, estoque atual e estoque mínimo.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">02</span><h3>Modelos</h3><p>Média móvel, suavização exponencial e regressão; backtest de 4 semanas.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">03</span><h3>Conhecimento</h3><p>Unidade de medida, estoque mínimo e a regra de compra.</p></div>
+          <div class="cartao sad-card"><span class="simbolo">04</span><h3>Interface</h3><p>Compras, Vendas e Produtos. A decisão na primeira tela.</p></div>
         </div>
         <div class="fluxo-sad"><span>Dados</span><b>→</b><span>Modelos</span><b>→</b><span>Decisão</span><b>→</b><span>Interface</span></div>
-        <div class="citacao" style="margin-top: 16px; font-size: clamp(0.9rem, 1.35vw, 1.2rem);">O SAD não substitui o ERP: ele consome os dados e devolve decisão.</div>
+        <div class="citacao" style="margin-top: 16px; font-size: clamp(0.9rem, 1.35vw, 1.2rem);">O SAD não substitui o caixa ou o ERP: ele consome os dados e devolve decisão.</div>
       </div>
       <div class="rodape"><span>Componentes clássicos de SAD (Turban; Sprague & Watson).</span><span>O conhecimento é explícito: regras, não caixa-preta.</span></div>
-      <div class="notas">Arquitetura: os quatro componentes do SAD. O diferencial é o conhecimento explícito: o gate sanitário e as regras de capacidade entram no cálculo, não ficam só no discurso.</div>
+      <div class="notas">Arquitetura: os quatro componentes do SAD. O diferencial é o conhecimento explícito: a unidade, o estoque mínimo e a regra de compra entram no cálculo, não ficam só no discurso.</div>
     </section>
 
-    <!-- 06 -->
     <section class="slide" data-slide="5">
-      <div class="kicker">05 · Dados e premissas</div>
-      <div class="slide-numero">06 / 12</div>
-      <div class="corpo">
-        <h2>Transparência: o que é real, o que é estimativa e o que é premissa.</h2>
-        <div class="dados-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
-          <div>
-            <span class="tag verde">Fonte pública</span>
-            <div class="fonte-lista" style="margin-top: 10px;">
-              <div class="fonte-item"><strong>IBGE — PPM 2025</strong><small>Rebanho de Caicó/RN: 15.157 caprinos e 24.909 ovinos; série 2015–2025.</small></div>
-              <div class="fonte-item"><strong>Embrapa CIM / Cepea — Set/2026</strong><small>RN: R$ 12,62/kg vivo; carcaça no Nordeste: R$ 22–32/kg.</small></div>
-              <div class="fonte-item"><strong>Embrapa Caprinos e Ovinos</strong><small>Custos de referência e coeficientes: peso ao abate 28–32 kg; rendimento 45–50%.</small></div>
-            </div>
-          </div>
-          <div>
-            <span class="tag ouro">Estimativa / premissa</span>
-            <div class="fonte-lista" style="margin-top: 10px;">
-              <div class="fonte-item"><strong>Série de demanda</strong><small>52 semanas ilustrativas, com sazonalidade de junho/dezembro e ruído determinístico.</small></div>
-              <div class="fonte-item"><strong>Fornecedores</strong><small>Três personas conformes e uma sem GTA, para demonstrar o gate sanitário.</small></div>
-              <div class="fonte-item"><strong>Capacidade e cobertura</strong><small>180 animais/semana; câmara de 6.000 kg; cobertura de 1 semana; z = 1,65.</small></div>
-            </div>
-            <div class="aviso"><strong>Sem dado real, o SAD ainda é um SAD</strong> — desde que a premissa esteja na tela. O sistema importa CSV para o frigorífico plugar o histórico real.</div>
-          </div>
-        </div>
-      </div>
-      <div class="rodape"><span>Fontes completas em <em>docs/fontes-e-premissas.md</em>.</span><span>O que é ilustrativo está rotulado na interface.</span></div>
-      <div class="notas">Transparência: não fingir que a demanda é real. O IBGE e a Embrapa são reais; a série de demanda e os fornecedores são ilustrativos. O CSV permite substituir a série sem mexer no código.</div>
-    </section>
-
-    <!-- 07 -->
-    <section class="slide" data-slide="6">
-      <div class="kicker">06 · Previsão</div>
-      <div class="slide-numero">07 / 12</div>
+      <div class="kicker">05 · Previsão</div>
+      <div class="slide-numero">06 / 10</div>
       <div class="corpo">
         <h2>Prever para decidir — e saber quanto o erro custa.</h2>
         <div class="previsao-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
           <div>
             <div class="metodos">
               <div class="metodo"><div><strong>Média móvel</strong><small>Reage rápido; ignora tendência.</small></div></div>
-              <div class="metodo"><div><strong>Suavização exponencial</strong><small>Pesa mais as semanas recentes; alfa controla a reação.</small></div></div>
+              <div class="metodo"><div><strong>Suavização exponencial</strong><small>Pesa mais as semanas recentes.</small></div></div>
               <div class="metodo"><div><strong>Regressão linear</strong><small>Captura tendência de crescimento ou queda.</small></div></div>
             </div>
-            <p style="margin-top: 14px; color: var(--muted); font-size: 0.78rem; line-height: 1.5;">O modo automático testa os três métodos nas últimas 4 semanas e escolhe o menor MAE. O backtest está na tela — não é caixa-preta.</p>
+            <p style="margin-top: 14px; color: var(--muted); font-size: 0.78rem; line-height: 1.5;">O modo automático testa os três métodos nas últimas 4 semanas e escolhe o menor MAE. O backtest fica na tela, dentro de “Como calculamos”.</p>
             <div class="metrica-linha">
-              <div class="metrica"><small>Caprino</small><strong>MAE 52 kg</strong></div>
-              <div class="metrica"><small>MAPE</small><strong>6,3%</strong></div>
-              <div class="metrica"><small>Ovino</small><strong>MAE 89 kg</strong></div>
-              <div class="metrica"><small>MAPE</small><strong>8,2%</strong></div>
+              <div class="metrica"><small>Arroz</small><strong>MAE 1,8 un</strong></div>
+              <div class="metrica"><small>MAPE</small><strong>4,4%</strong></div>
+              <div class="metrica"><small>Leite</small><strong>MAE 1,5 un</strong></div>
+              <div class="metrica"><small>MAPE</small><strong>2,7%</strong></div>
             </div>
-            <div class="aviso" style="margin-top: 14px;"><strong>Leitura:</strong> o automático escolheu média móvel no caprino e regressão no ovino. O erro está na tela; a decisão sabe o quanto está apostando.</div>
+            <div class="aviso" style="margin-top: 14px;"><strong>Leitura:</strong> o erro está na tela. A decisão sabe o quanto está apostando — não é uma caixa-preta.</div>
           </div>
           <div>
-            <img class="shot" src="slides/img/previsao.png" alt="Tela de previsão do SeridóFrigo com métodos, backtest e previsão das próximas quatro semanas">
-            <p class="shot-caption">Tela real: método automático, métricas por produto e previsão das próximas 4 semanas.</p>
+            <img class="shot" src="slides/img/app-grafico.png" alt="Gráfico do Mercadinho Seridó com 12 semanas de histórico e 4 semanas previstas">
+            <p class="shot-caption">Tela real: últimas 12 semanas + 4 previstas, com método e erro no bloco “Como calculamos”.</p>
           </div>
         </div>
       </div>
-      <div class="rodape"><span>MAE e MAPE calculados no backtest de 4 semanas.</span><span>A série é ilustrativa; o método é real.</span></div>
-      <div class="notas">Previsão: o importante não é o método mais sofisticado, é saber o erro. O automático escolhe por MAE. No caprino, média móvel; no ovino, regressão. A tela mostra o backtest.</div>
+      <div class="rodape"><span>MAE e MAPE calculados no backtest de 4 semanas.</span><span>A mostra é o exemplo; o método roda sobre os dados do dono.</span></div>
+      <div class="notas">Previsão: o importante não é o método mais sofisticado, é saber o erro. O automático escolhe por MAE. No exemplo, o arroz teve MAE de 1,8 unidade e MAPE de 4,4%; o leite, MAE de 1,5 e MAPE de 2,7%.</div>
     </section>
 
-    <!-- 08 -->
-    <section class="slide" data-slide="7">
-      <div class="kicker">07 · Estoque e plano</div>
-      <div class="slide-numero">08 / 12</div>
+    <section class="slide" data-slide="6">
+      <div class="kicker">06 · Regra da compra</div>
+      <div class="slide-numero">07 / 10</div>
       <div class="corpo">
-        <h2>Da previsão ao animal: a conta que vira decisão.</h2>
-        <div class="plano-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
+        <h2>Da previsão à compra em uma conta simples.</h2>
+        <div class="dados-grid" style="margin-top: clamp(16px, 2.2vw, 28px); align-items: start;">
           <div>
-            <div class="cadeia">
-              <div class="cadeia-item"><span class="n">1</span><div><strong>Previsão da semana</strong><small>kg de carcaça por espécie.</small></div></div>
-              <div class="cadeia-item"><span class="n">2</span><div><strong>Estoque meta</strong><small>previsão × cobertura + estoque de segurança.</small></div></div>
-              <div class="cadeia-item"><span class="n">3</span><div><strong>Produção necessária</strong><small>meta + previsão − estoque atual.</small></div></div>
-              <div class="cadeia-item"><span class="n">4</span><div><strong>Animais a abater</strong><small>produção ÷ kg de carcaça por animal, limitado pela capacidade e pela câmara.</small></div></div>
-              <div class="cadeia-item"><span class="n">5</span><div><strong>Compra de animais</strong><small>animais abatidos − estoque de animais vivos.</small></div></div>
+            <div class="cartao" style="padding: clamp(16px, 2vw, 24px);">
+              <span class="tag terra">Regra</span>
+              <code style="display:block; margin-top: 12px; padding: 14px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: clamp(0.68rem, 1.05vw, 0.86rem); line-height: 1.6; white-space: pre-wrap; color: var(--ink);">necessidade = max(0, previsão + mínimo − estoque)
+sugestão  = un ? arredonda para cima : 1 casa
+custo     = sugestão × custo unitário</code>
             </div>
-            <div class="resultado-strip">
-              <div class="cartao"><span class="mini">Abate total</span><span class="valor">176</span><small class="mini">animais · consolidado</small></div>
-              <div class="cartao"><span class="mini">Margem total</span><span class="valor">R$ 10,1 mil</span><small class="mini">no período · consolidada</small></div>
-              <div class="cartao"><span class="mini">Capacidade total</span><span class="valor">97,8%</span><small class="mini">utilizada · consolidada</small></div>
-            </div>
+            <div class="citacao" style="margin-top: 16px; font-size: clamp(0.85rem, 1.2vw, 1rem);">“Simples o bastante para o dono confiar; explícito o bastante para a banca auditar.”</div>
           </div>
           <div>
-            <img class="shot" src="slides/img/plano-card.png" alt="Cartão de plano semanal do caprino com parâmetros, resultados e alertas">
-            <p class="shot-caption">Plano do caprino: parâmetros editáveis, produção, compra, margem e alertas. O custo de produção inclui o que vai para estoque; a margem usa o custo do vendido.</p>
-          </div>
-        </div>
-      </div>
-      <div class="rodape"><span>Plano heurístico: transparente, reproduzível e limitado por capacidade/câmara.</span><span>Não é otimização global; é decisão explicável.</span></div>
-      <div class="notas">Plano: a cadeia de cálculo. O número grande é o plano do caso. O sistema separa custo de produção de custo do vendido para a margem não parecer contraditória. Os alertas mostram quando a capacidade ou a câmara apertam.</div>
-    </section>
-
-    <!-- 09 -->
-    <section class="slide" data-slide="8">
-      <div class="kicker">08 · Fornecedores</div>
-      <div class="slide-numero">09 / 12</div>
-      <div class="corpo">
-        <h2>Quando o preço não é tudo.</h2>
-        <div class="ahp-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
-          <div>
-            <div class="pesos">
-              <div class="peso"><div><small class="mini">Preço</small><div class="barra"><i style="width: 100%;"></i></div></div><small>40%</small></div>
-              <div class="peso"><div><small class="mini">Qualidade da carcaça</small><div class="barra"><i style="width: 75%; background: var(--terracotta);"></i></div></div><small>30%</small></div>
-              <div class="peso"><div><small class="mini">Prazo de entrega</small><div class="barra"><i style="width: 37.5%; background: var(--gold);"></i></div></div><small>15%</small></div>
-              <div class="peso"><div><small class="mini">Confiabilidade</small><div class="barra"><i style="width: 37.5%; background: var(--muted);"></i></div></div><small>15%</small></div>
-            </div>
-            <div class="gate"><strong>Gate sanitário:</strong> fornecedor sem conformidade é excluído antes do cálculo. Nenhum peso compensa isso.</div>
-            <div class="metrica-linha">
-              <div class="metrica"><small>Consistência</small><strong>CR 0%</strong></div>
-              <div class="metrica"><small>Conformes</small><strong>3 de 4</strong></div>
-            </div>
-          </div>
-          <div>
-            <table class="ranking-tabela">
-              <thead><tr><th>#</th><th>Fornecedor</th><th>Preço/kg</th><th class="score">Score</th></tr></thead>
+            <h3 style="margin-bottom: 10px;">Exemplo: arroz 5 kg</h3>
+            <table style="width:100%; border-collapse: collapse; font-size: clamp(0.78rem, 1.15vw, 0.95rem);">
+              <thead class="sr-only"><tr><th scope="col">Indicador</th><th scope="col">Valor</th></tr></thead>
               <tbody>
-                <tr><td class="pos">1º</td><td><strong>Fazenda Boa Vista</strong><br><small style="color: var(--muted);">Caicó/RN</small></td><td>R$ 13,10</td><td class="score">37,3%</td></tr>
-                <tr><td class="pos">2º</td><td><strong>Lote de Uauá/BA</strong><br><small style="color: var(--muted);">Uauá/BA</small></td><td>R$ 12,40</td><td class="score">32,0%</td></tr>
-                <tr><td class="pos">3º</td><td><strong>Cooperativa Seridó</strong><br><small style="color: var(--muted);">Caicó/RN</small></td><td>R$ 12,80</td><td class="score">30,8%</td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Previsão da próxima semana</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;"><strong>38,8 un</strong></td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Estoque atual</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">8 un</td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Estoque mínimo</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">4 un</td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Necessidade</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">34,8 un</td></tr>
+                <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Compra sugerida</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;"><strong style="color: var(--terracotta-dark);">35 un</strong></td></tr>
+                <tr><td style="padding: 9px 10px; color: var(--muted);">Custo estimado</td><td style="padding: 9px 10px; text-align:right;"><strong>R$ 787,50</strong></td></tr>
               </tbody>
             </table>
-            <div class="aviso" style="margin-top: 10px; background: rgba(181, 82, 47, 0.08); border-color: rgba(181, 82, 47, 0.3); color: var(--ink-soft);"><strong>Excluído:</strong> Lote informal sem GTA — sem conformidade sanitária.</div>
-            <p class="shot-caption" style="margin-top: 8px;">O mais barato (Uauá, R$ 12,40) não vence: prazo e confiabilidade pesam. O AHP torna o trade-off explícito.</p>
+            <p style="margin-top: 12px; color: var(--muted); font-size: 0.78rem; line-height: 1.5;">O dono decide a compra final. O app é uma sugestão; o estoque é atualizado manualmente.</p>
           </div>
         </div>
       </div>
-      <div class="rodape"><span>AHP clássico: matrizes pareadas, autovetor e CR ≤ 10%.</span><span>O gate sanitário é conhecimento, não peso.</span></div>
-      <div class="notas">Fornecedores: o AHP foi adaptado para uma decisão de compra real. O gate sanitário é uma regra de conhecimento: não adianta ser barato se não tem GTA. O ranking mostra o trade-off: o mais barato não é o melhor.</div>
+      <div class="rodape"><span>Unidade “un” arredonda para cima; kg e L usam uma casa decimal.</span><span>Sem lead time, validade ou orçamento no MVP.</span></div>
+      <div class="notas">Regra: previsão + estoque mínimo menos estoque atual. No exemplo do arroz: 38,8 + 4 − 8 = 34,8; arredonda para 35 unidades; a R$ 22,50, custa R$ 787,50. O dono decide a compra final.</div>
     </section>
 
-    <!-- 10 -->
-    <section class="slide" data-slide="9">
-      <div class="kicker">09 · Posicionamento</div>
-      <div class="slide-numero">10 / 12</div>
+    <section class="slide" data-slide="7">
+      <div class="kicker">07 · Demonstração</div>
+      <div class="slide-numero">08 / 10</div>
       <div class="corpo">
-        <h2>Por que não somos um ERP.</h2>
-        <div class="comparativo" style="margin-top: clamp(14px, 2vw, 24px);">
-          <div class="cartao">
-            <h3>ERP frigorífico</h3>
-            <p class="produtos">Sistec · Frigo-Data · AQx · Nevera · Frigosoft</p>
-            <p>SIF/MAPA, NF-e, rastreabilidade, balanças, WMS, custo por lote. Implantação e operação de ERP.</p>
-            <span class="tag">Amplo e regulatório</span>
-          </div>
-          <div class="cartao">
-            <h3>APS enterprise</h3>
-            <p class="produtos">RELEX · Imperia · Logic Factory · CSB · CutLogix</p>
-            <p>S&OP, previsão com IA, balanceamento de carcaça, otimização de cortes. Projetos médios/grandes.</p>
-            <span class="tag">Poderoso e caro</span>
-          </div>
-          <div class="cartao destaque">
-            <h3>SeridóFrigo</h3>
-            <p class="produtos">Camada de decisão semanal</p>
-            <p>Previsão + plano + cenários + AHP de fornecedores. CSV, sem SIF/NF-e. Complementa o ERP ou a planilha.</p>
-            <span class="tag terra">Foco no pequeno frigorífico</span>
-          </div>
-        </div>
-        <div class="gap"><strong>O espaço:</strong> o pequeno frigorífico regional fica entre a planilha e o APS enterprise. O SeridóFrigo ocupa essa lacuna — sem tentar ser um ERP.</div>
-      </div>
-      <div class="rodape"><span>Auditoria de mercado em <em>docs/auditoria-mercado.md</em>.</span><span>Produtos citados apenas como referência de mercado.</span></div>
-      <div class="notas">Posicionamento: a auditoria mostrou que o mercado de ERP é maduro e o de APS é caro. O espaço é a camada de decisão para o pequeno frigorífico. Não somos um ERP; somos o que decide em cima dele.</div>
-    </section>
-
-    <!-- 11 -->
-    <section class="slide" data-slide="10">
-      <div class="kicker">10 · Limitações e próximos passos</div>
-      <div class="slide-numero">11 / 12</div>
-      <div class="corpo">
-        <h2>O que este MVP não faz — e por que isso importa.</h2>
-        <div class="limites-grid" style="margin-top: clamp(16px, 2.2vw, 28px);">
-          <div class="cartao">
-            <h3>Não faz</h3>
-            <ul class="lista-limpa">
-              <li>SIF/MAPA, NF-e, rastreabilidade de lote e balanças.</li>
-              <li>Otimização de cortes e balanceamento de carcaça.</li>
-              <li>Dados reais do frigorífico — a série é ilustrativa.</li>
-              <li>Plano ótimo global: o plano é heurístico e explicável.</li>
-            </ul>
-          </div>
-          <div class="cartao">
-            <h3>Próximos passos</h3>
-            <ul class="lista-limpa verde">
-              <li>Importar o histórico real e validar com um frigorífico.</li>
-              <li>Integrar ao ERP/planilha existente via CSV/API.</li>
-              <li>Adicionar mix de cortes e programação linear.</li>
-              <li>Evoluir para multi-usuário/cloud e alertas.</li>
-            </ul>
-          </div>
-        </div>
-        <div class="citacao" style="margin-top: clamp(12px, 1.8vw, 22px);">“Um SAD honesto mostra o limite do modelo, não só o resultado.”</div>
-      </div>
-      <div class="rodape"><span>A limitação está na interface e nos slides.</span><span>Isso protege o usuário e a banca.</span></div>
-      <div class="notas">Limitações: ser explícito é mais forte do que prometer tudo. O MVP não faz SIF, NF-e nem otimização de cortes. O próximo passo é dado real e integração. O valor está na decisão semanal, não na operação inteira.</div>
-    </section>
-
-    <!-- 12 -->
-    <section class="slide fechamento" data-slide="11">
-      <div class="kicker">11 · Demonstração</div>
-      <div class="slide-numero">12 / 12</div>
-      <div class="corpo" style="justify-content: center;">
         <h2>A decisão da semana em uma tela.</h2>
-        <p class="subtitulo">Previsão, plano, estoque e fornecedor — com as premissas à vista e o limite do modelo declarado.</p>
-        <div class="assinatura"><span class="mark">SF</span> SeridóFrigo · Caicó/RN · DCT2403</div>
+        <p class="subtitulo" style="max-width: 70ch;">Lista de compras sugerida, previsão por produto e o gráfico de 12 + 4. Tudo com os dados que o dono registrou.</p>
+        <img class="shot" src="slides/img/app-compras.png" alt="Tela de Compras do Mercadinho Seridó com a lista de compras sugerida" style="max-height: 58vh; width: auto; max-width: 100%; margin: 0 auto;">
       </div>
-      <div class="rodape"><span><em>Demo ao vivo:</em> painel → previsão → plano → fornecedores → dados.</span><span>Perguntas?</span></div>
-      <div class="notas">Fechamento: demo ao vivo. Roteiro: abrir o painel, mostrar o número de animais e a margem; ir para a previsão e mostrar o backtest; abrir o plano e mudar a cobertura para 3 para ver o alerta; ir para fornecedores e mostrar o gate; finalizar na página de dados e na limitação.</div>
+      <div class="rodape"><span><em>Demo ao vivo:</em> Compras → Vendas → Produtos.</span><span>O dono vê a conta e o custo antes de comprar.</span></div>
+      <div class="notas">Demonstração: abrir Compras, mostrar a lista e o custo total; selecionar um produto e abrir “Como calculamos”; ir para Vendas e mostrar o lançamento semanal; finalizar em Produtos com o cadastro e o exemplo/limpar.</div>
+    </section>
+
+    <section class="slide" data-slide="8">
+      <div class="kicker">08 · Entrega e limites</div>
+      <div class="slide-numero">09 / 10</div>
+      <div class="corpo">
+        <h2>O que o MVP entrega — e o que fica para depois.</h2>
+        <div class="dados-grid" style="margin-top: clamp(16px, 2.2vw, 28px); align-items: start;">
+          <div class="cartao" style="padding: clamp(16px, 2vw, 24px);">
+            <span class="tag verde">Entrega</span>
+            <ul style="margin: 12px 0 0 18px; padding: 0; color: var(--ink-soft); font-size: clamp(0.78rem, 1.1vw, 0.92rem); line-height: 1.65;">
+              <li>3 abas: Compras, Vendas e Produtos.</li>
+              <li>Previsão automática com erro na tela.</li>
+              <li>Compra sugerida com quantidade e custo.</li>
+              <li>Exemplo rotulado, dados no navegador.</li>
+              <li>54 testes e deploy no GitHub Pages.</li>
+            </ul>
+          </div>
+          <div class="cartao" style="padding: clamp(16px, 2vw, 24px);">
+            <span class="tag ouro">Limites e próximos passos</span>
+            <ul style="margin: 12px 0 0 18px; padding: 0; color: var(--ink-soft); font-size: clamp(0.78rem, 1.1vw, 0.92rem); line-height: 1.65;">
+              <li>Estoque manual: o app não é PDV.</li>
+              <li>Sem lead time, validade ou orçamento.</li>
+              <li>Sem fornecedores, CSV ou multiusuário.</li>
+              <li>Próximo passo: validar com um mercadinho real.</li>
+              <li>A versão frigorífico ficou preservada como legado.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="citacao">“Um SAD honesto mostra o limite do modelo, não só o resultado.”</div>
+      </div>
+      <div class="rodape"><span>A limitação está na interface e nos slides.</span><span>Isso protege o dono e a banca.</span></div>
+      <div class="notas">Limitações: ser explícito é mais forte do que prometer tudo. O MVP não faz PDV, validade, lead time, orçamento ou fornecedores. O próximo passo é validar com um mercadinho real. O valor está na decisão semanal, não na operação inteira.</div>
+    </section>
+
+    <section class="slide fechamento" data-slide="9">
+      <div class="kicker">09 · Encerramento</div>
+      <div class="slide-numero">10 / 10</div>
+      <div class="corpo" style="justify-content: center;">
+        <h2>Uma decisão simples, toda semana.</h2>
+        <p class="subtitulo">Mercadinho Seridó · previsão de vendas + lista de compras para um pequeno mercadinho de Caicó/RN.</p>
+        <div class="assinatura"><span class="mark">MS</span> Mercadinho Seridó · Caicó/RN · DCT2403</div>
+      </div>
+      <div class="rodape"><span><em>App:</em> <a href="https://emiyakiritsugu3.github.io/SAD_02/" style="color: inherit; text-decoration: underline;">emiyakiritsugu3.github.io/SAD_02</a></span><span>Perguntas?</span></div>
+      <div class="notas">Fechamento: retomar a decisão, a regra e o limite. Link do app no rodapé. Perguntas.</div>
     </section>
 
   </div>

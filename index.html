@@ -3,81 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="SeridóFrigo — SAD de planejamento semanal de abate e estoque para um frigorífico de caprinos e ovinos em Caicó/RN.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5522f'/%3E%3Ctext x='32' y='43' font-family='Georgia' font-size='30' fill='%23fff8ee' text-anchor='middle'%3ESF%3C/text%3E%3C/svg%3E">
-  <title>SeridóFrigo — SAD de planejamento semanal</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Mercadinho Seridó — SAD de compra semanal para um mercadinho de bairro em Caicó/RN. Preveja as vendas e saiba quanto comprar de cada produto.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5522f'/%3E%3Ctext x='32' y='43' font-family='Georgia' font-size='26' fill='%23fff8ee' text-anchor='middle'%3EMS%3C/text%3E%3C/svg%3E">
+  <title>Mercadinho Seridó — SAD de compra semanal</title>
+  <link rel="stylesheet" href="style.css?v=20261127">
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true">SF</span>
-        <div>
-          <strong>SeridóFrigo</strong>
+    <header class="topbar">
+      <button class="marca" type="button" data-aba="compras" aria-label="Ir para Compras">
+        <span class="marca-mark" aria-hidden="true">MS</span>
+        <span class="marca-texto">
+          <strong>Mercadinho Seridó</strong>
           <small>Caicó/RN</small>
-        </div>
-      </div>
+        </span>
+      </button>
 
-      <nav aria-label="Navegação principal">
-        <button data-aba="painel" class="nav-item ativo" aria-current="page">
-          <span class="nav-icone" aria-hidden="true">◧</span> Painel
-        </button>
-        <button data-aba="previsao" class="nav-item">
-          <span class="nav-icone" aria-hidden="true">↗</span> Previsão
-        </button>
-        <button data-aba="plano" class="nav-item">
-          <span class="nav-icone" aria-hidden="true">▤</span> Plano semanal
-        </button>
-        <button data-aba="fornecedores" class="nav-item">
-          <span class="nav-icone" aria-hidden="true">⇄</span> Fornecedores
-        </button>
-        <button data-aba="dados" class="nav-item">
-          <span class="nav-icone" aria-hidden="true">⌂</span> Dados e premissas
-        </button>
+      <nav class="abas" aria-label="Navegação principal">
+        <button class="aba ativa" type="button" data-aba="compras" aria-current="page">Compras</button>
+        <button class="aba" type="button" data-aba="vendas">Vendas</button>
+        <button class="aba" type="button" data-aba="produtos">Produtos</button>
       </nav>
 
-      <div class="sidebar-foot">
-        <span class="badge fonte">Dados públicos</span>
-        <span class="badge estimativa">Demanda ilustrativa</span>
-        <p class="sidebar-nota">Camada de decisão semanal. Não substitui o ERP do frigorífico.</p>
-      </div>
-    </aside>
+      <span id="badge-exemplo" class="badge" hidden>Dados de exemplo</span>
+    </header>
 
     <main id="conteudo" class="main" tabindex="-1">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Frigorífico Serra do Seridó · Caicó/RN</p>
-          <h1 id="titulo-aba">Painel</h1>
-          <p id="subtitulo-aba" class="subtitulo">A decisão da semana em uma tela.</p>
-        </div>
-        <div class="topbar-acoes">
-          <div class="semana">
-            <label for="semana">Semana de referência</label>
-            <select id="semana"></select>
-          </div>
-          <button class="botao" data-acao="recalcular" type="button">Recalcular</button>
-        </div>
-      </header>
-
-      <div id="app" aria-label="Conteúdo da aba" role="region"></div>
+      <div id="aviso-persistencia" class="aviso perigo" role="alert" hidden></div>
+      <section id="app" aria-label="Conteúdo da aba"></section>
       <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     </main>
+
+    <footer class="rodape">
+      <span>Camada de decisão semanal. Não substitui o caixa ou o ERP do mercadinho.</span>
+      <span>Os dados ficam salvos neste navegador.</span>
+    </footer>
   </div>
 
-  <noscript>Este SAD precisa de JavaScript habilitado para calcular a previsão e o plano semanal.</noscript>
+  <noscript>Este SAD precisa de JavaScript habilitado para prever as vendas e sugerir a compra.</noscript>
 
-  <script src="js/ahp.js"></script>
-  <script src="js/dados.js"></script>
-  <script src="js/previsao.js"></script>
-  <script src="js/estoque.js"></script>
-  <script src="js/plano.js"></script>
-  <script src="js/fornecedores.js"></script>
-  <script src="js/csv.js"></script>
-  <script src="js/importacao.js"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/estado.js?v=20261127"></script>
+  <script src="js/produtos.js?v=20261127"></script>
+  <script src="js/vendas.js?v=20261127"></script>
+  <script src="js/previsao.js?v=20261127"></script>
+  <script src="js/compras.js?v=20261127"></script>
+  <script src="js/charts.js?v=20261127"></script>
+  <script src="js/app.js?v=20261127"></script>
 </body>
 </html>

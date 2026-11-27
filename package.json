@@ -1,5 +1,5 @@
 {
-  "name": "seridofrigo",
+  "name": "mercadinho-serido",
   "private": true,
   "scripts": { "test": "node --test" }
 }

@@ -1,4 +1,4 @@
-# Roteiro de apresentação — SeridóFrigo
+# Roteiro de apresentação — Mercadinho Seridó
 
 **Duração alvo:** 10–12 minutos + perguntas.
 **Deck:** `slides.html` (interativo) ou `slides.pdf` (backup).
@@ -6,115 +6,102 @@
 
 ## 1. Abertura (30 s)
 
-“Bom dia. O SeridóFrigo é um SAD para uma decisão específica: quanto abater, quanto estocar e de quem comprar, toda semana, em um frigorífico de caprinos e ovinos em Caicó/RN. Ele não é um ERP e não é um AHP genérico.”
+“Bom dia. O Mercadinho Seridó é um SAD para uma decisão específica: **quanto comprar de cada produto na próxima semana**, em um mercadinho de bairro em Caicó/RN. Ele não é um PDV e não é um ERP: é uma camada de decisão em cima do histórico de vendas que o dono já tem.”
 
 ## 2. Contexto (45 s)
 
-- O frigorífico vive de uma rotina semanal: compra animal, abate, estoca e vende.
-- O erro aparece rápido: ruptura, câmara cheia, compra cara ou lote sem conformidade.
-- Dados públicos: 15.157 caprinos e 24.909 ovinos em Caicó/RN (IBGE PPM 2025).
-- A capacidade de 180 animais/semana é premissa do caso.
+- O mercadinho compra, estoca e vende. A rotina é semanal.
+- O erro aparece rápido: falta na prateleira, sobra no estoque ou capital parado.
+- A planilha registra o passado; não responde “quanto comprar agora?”.
+- O exemplo tem 10 produtos, 12 semanas de histórico e prevê 4 semanas.
 
 ## 3. Problema (45 s)
 
-- Planilha registra o passado; não decide o próximo passo.
-- Três dores: ruptura, excesso e compra ruim.
-- A virada do projeto: de um AHP genérico para um SAD de um frigorífico real.
+- **Ruptura:** o cliente procura e o produto não está.
+- **Excesso:** o estoque enche, o dinheiro fica parado e a validade corre.
+- **Compra sem histórico:** o dono repete o mês passado e não sabe o erro da previsão.
+- “O recorte: um usuário, uma decisão, um domínio.”
 
 ## 4. Usuário e decisão (45 s)
 
-- Usuário: gestor de produção e estoque.
-- Decisão: quanto abater (caprino/ovino), quanto estocar e de quem comprar.
-- A decisão é recorrente; o sistema precisa ser usado toda semana.
+- **Usuário:** o dono do mercadinho, uma pessoa, uma rotina semanal.
+- **Decisão:** quanto comprar de cada produto para a próxima semana.
+- **Fluxo:** o que vendeu → quanto vai vender → quanto comprar.
+- **Saída:** lista de compras com quantidade e custo estimado.
 
 ## 5. Arquitetura SAD (50 s)
 
-- Dados: IBGE, Embrapa/Cepea, CSV do frigorífico.
-- Modelos: previsão, estoque, plano, cenários e AHP.
-- Conhecimento: gate sanitário, capacidade, câmara, estoque mínimo.
-- Interface: painel, previsão, plano, fornecedores e dados.
-- “O SAD não substitui o ERP: consome dados e devolve decisão.”
+- **Dados:** produtos, vendas semanais, estoque atual e estoque mínimo.
+- **Modelos:** média móvel, suavização exponencial, regressão e backtest.
+- **Conhecimento:** unidade de medida, estoque mínimo e regra de compra.
+- **Interface:** Compras, Vendas e Produtos.
+- “O SAD não substitui o caixa/ERP: consome os dados e devolve decisão.”
 
-## 6. Dados e premissas (50 s)
-
-- O que é real: rebanho (IBGE), preços (Embrapa/Cepea), custos/coeficientes (Embrapa).
-- O que é ilustrativo: série de demanda, fornecedores, capacidade/cobertura.
-- O sistema importa CSV para o frigorífico plugar o histórico real.
-- “Sem dado real, o SAD ainda é um SAD — desde que a premissa esteja na tela.”
-
-## 7. Previsão (1 min)
+## 6. Previsão (1 min)
 
 - Três métodos: média móvel, suavização exponencial e regressão.
-- Backtest nas últimas 4 semanas; o automático escolhe o menor MAE.
-- Resultado do caso: caprino MAE 52 kg / MAPE 6,3%; ovino MAE 89 kg / MAPE 8,2%.
-- O erro está na tela; não é caixa-preta.
+- Menos de 4 semanas: sem previsão.
+- De 4 a 7 semanas: média móvel.
+- A partir de 8 semanas: backtest nas últimas 4 semanas e escolha automática pelo menor MAE.
+- Exemplo: arroz com MAE 1,8 unidade e MAPE 4,4%; leite com MAE 1,5 e MAPE 2,7%.
+- “O erro está na tela, dentro de ‘Como calculamos’. Não é caixa-preta.”
 
-## 8. Estoque e plano (1 min 10 s)
+## 7. Regra da compra (1 min 10 s)
 
-- Cadeia: previsão → estoque meta → produção → animais → compra.
-- O plano respeita capacidade de abate e câmara.
-- Resultado do caso: 176 animais no total; margem de R$ 10,1 mil no período; 97,8% da capacidade.
-- A margem usa o custo do vendido; o custo de produção inclui o que vai para estoque.
-- Alertas mostram quando a capacidade ou a câmara apertam.
+- `necessidade = max(0, previsão + estoque mínimo − estoque atual)`.
+- `un` arredonda para cima; `kg` e `L` usam uma casa decimal.
+- Exemplo do arroz: 38,8 + 4 − 8 = 34,8 → **35 unidades**; a R$ 22,50 → **R$ 787,50**.
+- O dono decide a compra final; o app é uma sugestão.
+- Limite: o estoque é atualizado manualmente; o app não é um PDV.
 
-## 9. Fornecedores (1 min)
+## 8. Demonstração (1 min 30 s)
 
-- AHP clássico: critérios pareados, autovetor e CR ≤ 10%.
-- Pesos do caso: preço 40%, qualidade 30%, prazo 15%, confiabilidade 15%.
-- Gate sanitário: fornecedor sem GTA é excluído antes do cálculo.
-- Ranking: Boa Vista (37,3%), Uauá (32,0%), Cooperativa (30,8%).
-- “O mais barato não vence: prazo e confiabilidade pesam.”
+1. Abrir **Compras**: mostrar a lista, o custo total e os produtos sem dados.
+2. Selecionar **Arroz**: abrir o gráfico 12 + 4 e “Como calculamos”.
+3. Ir para **Vendas**: mostrar a semana, alterar uma quantidade e salvar.
+4. Voltar para **Compras**: mostrar a previsão e a compra recalculadas.
+5. Ir para **Produtos**: mostrar o cadastro, o exemplo e o “Limpar dados”.
+6. Se der tempo, mostrar o **resumo mensal** em Vendas.
 
-## 10. Posicionamento (50 s)
+## 9. Entrega e limites (50 s)
 
-- ERP frigorífico: SIF, NF-e, rastreabilidade, WMS — amplo e regulatório.
-- APS enterprise: S&OP, IA, balanceamento de carcaça — poderoso e caro.
-- SeridóFrigo: camada de decisão semanal, CSV, sem SIF/NF-e.
-- O espaço: o pequeno frigorífico entre a planilha e o APS enterprise.
+- **Entrega:** 3 abas, previsão automática, compra sugerida, exemplo rotulado, dados no navegador, 54 testes e deploy no GitHub Pages.
+- **Limites:** estoque manual; sem lead time, validade, orçamento, fornecedores, CSV ou multiusuário.
+- **Próximo passo:** validar com um mercadinho real e, depois, integrar ao caixa/ERP.
+- A versão frigorífico ficou preservada como legado no Git.
 
-## 11. Limitações e próximos passos (40 s)
+## 10. Encerramento (20 s)
 
-- Não faz: SIF/MAPA, NF-e, rastreabilidade, balanças, otimização de cortes.
-- A série é ilustrativa; o plano é heurístico.
-- Próximos passos: dado real, integração com ERP, mix de cortes/LP, validação com frigorífico.
-- “Um SAD honesto mostra o limite do modelo, não só o resultado.”
-
-## 12. Fechamento e demo (30 s + demo)
-
-- “A decisão da semana em uma tela.”
-- Demo: painel → previsão → plano → fornecedores → dados.
-- Perguntas.
-
-## Roteiro de demo (2–3 min)
-
-1. **Painel:** mostrar os 6 KPIs, o gráfico de demanda, o alerta “sem alertas” e o fornecedor recomendado.
-2. **Previsão:** trocar o método para “Regressão linear” e mostrar MAE/MAPE mudando; voltar para “Automático”.
-3. **Plano:** abrir a aba, mudar a cobertura do caprino para 3 e mostrar o alerta de capacidade/câmara; clicar em “Restaurar parâmetros”.
-4. **Fornecedores:** abrir a aba, mostrar o ranking, o gate sanitário e o CR 0%; alterar uma comparação para gerar CR alto e mostrar o alerta; restaurar exemplo.
-5. **Dados:** mostrar a tabela de fontes, importar um CSV de demanda válido e um inválido; mostrar que o inválido não altera os dados; restaurar dados.
+“Uma decisão simples, toda semana. O app está publicado em `emiyakiritsugu3.github.io/SAD_02`. Obrigado — perguntas?”
 
 ## Perguntas prováveis
 
-**“Por que AHP e não uma planilha de pesos?”**
-AHP torna as comparações explícitas, verifica a consistência (CR) e permite combinar critérios qualitativos e quantitativos. A planilha de pesos esconde os julgamentos.
+**“Isso não é só um dashboard?”**
+Não: a saída é uma decisão de compra com quantidade e custo, não um gráfico para o usuário interpretar sozinho. O gráfico é apoio; a lista de compras é a ação.
 
-**“Por que não fazer um ERP?”**
-O mercado de ERP frigorífico é maduro e regulatório (SIF, NF-e, rastreabilidade, WMS). Um MVP de uma semana não compete nesse espaço. O valor está na camada de decisão que o ERP não entrega.
+**“Por que não é um ERP/PDV?”**
+O ERP registra a operação inteira; o Mercadinho Seridó decide em cima dos dados. Ele não emite nota, não controla caixa e não substitui o sistema da loja.
 
-**“Os dados são reais?”**
-Rebanho, preços e custos são de fontes públicas. A série de demanda e os fornecedores são ilustrativos e estão rotulados. O sistema importa CSV para dados reais.
+**“Como funciona com poucos dados?”**
+Menos de 4 semanas: sem previsão. De 4 a 7: média móvel. A partir de 8: backtest e escolha automática. O app avisa quando não há dados suficientes.
 
-**“Como validar com um frigorífico?”**
-Importar o histórico real, rodar o backtest, comparar o plano com a decisão do gestor por 4–8 semanas e medir ruptura, estoque e aderência.
+**“E produtos perecíveis?”**
+O MVP não modela validade. É uma evolução natural: incluir validade, lead time e alerta de vencimento. Hoje o dono controla isso manualmente.
 
-**“O que falta para virar produto?”**
-Dados reais, integração com ERP/planilha, mix de cortes, multiusuário/cloud, validação comercial e conformidade LGPD.
+**“Como você sabe que está certo?”**
+54 testes automatizados, smoke test com Playwright e um conjunto de exemplo reproduzível. A validação com dados reais de um mercadinho é o próximo passo.
 
-**“Qual o modelo de negócio?”**
-Assinatura baixa para pequenos frigoríficos, cobrada por planta/usuário, com implantação simples via CSV. O ERP continua sendo o sistema de registro; o SeridóFrigo é a camada de decisão.
+**“O que é real e o que é ilustrativo?”**
+O conjunto inicial de 10 produtos e 12 semanas é ilustrativo e está rotulado. Os dados que o dono digita são reais e ficam no navegador. Não há dados públicos nesta versão.
 
-## Créditos
+**“Por que o estoque é manual?”**
+Para manter o MVP simples e não duplicar um PDV. O dono atualiza o estoque depois de comprar/vender; a recomendação usa esse número.
 
-- Fontes: Fraunces e Archivo (Google Fonts, OFL).
-- Dados: IBGE PPM 2025; Embrapa CIM/Cepea Set/2026; Embrapa Caprinos e Ovinos.
-- Screenshots: aplicação SeridóFrigo.
+## Checklist antes de apresentar
+
+- [ ] `npm test` verde (54 testes).
+- [ ] App aberto em `http://localhost:8000` com o exemplo carregado.
+- [ ] Slides em `http://localhost:8000/slides.html` ou `slides.pdf`.
+- [ ] Abrir a aba Compras e deixar o Arroz selecionado.
+- [ ] Testar a demo uma vez: Vendas → alterar → salvar → Compras.
+- [ ] Conferir o link do Pages no encerramento.

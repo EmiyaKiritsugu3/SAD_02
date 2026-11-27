@@ -1,42 +1,54 @@
-# SeridóFrigo — SAD de planejamento semanal (Caicó/RN)
+# Mercadinho Seridó — SAD de compra semanal
 
-**Status:** MVP funcional (novembro/2026) — sistema + slides.
-**Disciplina:** DCT2403 — Sistemas de Apoio à Decisão · UFRN/CERES.
-**Posicionamento:** camada de decisão semanal para um pequeno frigorífico de caprinos e ovinos. **Não é um ERP.**
+App estático que ajuda o dono de um mercadinho de bairro em Caicó/RN a decidir **quanto comprar de cada produto para a próxima semana**.
 
-## O problema
+É uma **camada de decisão**, não um PDV nem um ERP. O dono continua usando o caixa para as vendas; o app usa o histórico semanal para prever a demanda e sugerir a compra.
 
-O frigorífico compra animais, abate, estoca e vende. Toda semana, o gestor precisa decidir o tamanho da semana — e cada erro aparece rápido: ruptura, câmara cheia, animal comprado caro ou lote sem conformidade sanitária. A planilha registra o passado; ela não ajuda a decidir o próximo passo.
+- **Usuário:** dono/gestor do mercadinho.
+- **Decisão:** quantidade de compra por produto na semana seguinte.
+- **Domínio:** reposição de produtos de um pequeno mercadinho.
+- **Site:** https://emiyakiritsugu3.github.io/SAD_02/
+- **Slides:** `slides.html` e `slides.pdf`
 
-O projeto anterior era um assistente AHP genérico. O recorte atual atende ao feedback da disciplina: **um usuário, uma decisão, um domínio específico**.
+## Como funciona
 
-## A decisão
+### 1. Produtos
 
-**Usuário:** gestor de produção e estoque do Frigorífico Serra do Seridó (Caicó/RN; persona e dados ilustrativos).
+Cadastre nome, unidade (`un`, `kg` ou `L`), custo, preço, estoque atual e estoque mínimo. O custo entra na compra; o preço, na receita mensal.
 
-Toda segunda-feira:
+### 2. Vendas
 
-1. **Quanto abater?** Caprinos e ovinos, por espécie, dentro da capacidade e da câmara.
-2. **Quanto estocar?** Cobertura, estoque de segurança, validade e risco de ruptura.
-3. **De quem comprar?** Preço, qualidade, prazo, confiabilidade — e conformidade sanitária.
+Lance uma semana por vez, com a quantidade vendida de cada produto. A data é normalizada para a segunda-feira da semana. A visão mensal mostra quantidade e receita por produto.
 
-**Saída:** plano da semana + necessidade de compra + alertas + fornecedor recomendado.
+### 3. Compras
 
-## O que o sistema faz
+Para cada produto com pelo menos 4 semanas de histórico, o app projeta a próxima semana e calcula:
 
-- **Painel:** estoque, previsão, abate recomendado, compra, margem, capacidade, gráfico de demanda e alertas.
-- **Previsão:** média móvel, suavização exponencial e regressão linear; backtest nas últimas 4 semanas; MAE/MAPE; modo automático pelo menor MAE.
-- **Plano semanal:** estoque de segurança, cobertura, produção, animais, compra, margem e limites de capacidade/câmara.
-- **Cenários:** sliders de demanda, preço e capacidade; tabela pessimista/base/otimista.
-- **Fornecedores (AHP):** critérios pareados, verificação de CR (aviso acima de 10%), ranking e **gate sanitário** (fornecedor sem conformidade é excluído antes do cálculo).
-- **Dados e premissas:** fontes públicas, valores usados, importação CSV de demanda e estoque, restauração do exemplo.
-- **Persistência:** parâmetros, matrizes AHP e cenários ficam no `localStorage`.
+```text
+necessidade = max(0, previsão da próxima semana + estoque mínimo − estoque atual)
+sugestão = unidade "un" ? arredonda para cima : arredonda com 1 casa
+custo estimado = sugestão × custo unitário
+```
 
-## O que ele não faz
+O total da compra aparece no topo. O estoque é atualizado manualmente pelo dono; o app não controla compras ou vendas como movimentos de estoque.
 
-Não substitui um ERP. Não cobre SIF/MAPA, NF-e, rastreabilidade de lote, balanças, WMS, controle fiscal ou otimização de cortes/carcaça. O plano é heurístico e explicável, não uma otimização global. A série de demanda é ilustrativa; o sistema importa CSV para o frigorífico plugar o histórico real.
+### Previsão
 
-Essas limitações estão explícitas na interface e nos slides — e são o argumento de posicionamento da auditoria de mercado (`docs/auditoria-mercado.md`).
+- Média móvel (janela 4), suavização exponencial (α 0,3) e regressão linear.
+- Menos de 4 semanas: sem previsão.
+- De 4 a 7 semanas: média móvel.
+- A partir de 8 semanas: backtest nas últimas 4 semanas e escolha automática pelo menor MAE.
+- Gráfico com as últimas 12 semanas + 4 previstas.
+- “Como calculamos” mostra método, MAE, MAPE e a fórmula da compra.
+
+## Dados de exemplo
+
+Na primeira abertura, o app carrega 10 produtos e 12 semanas de vendas ilustrativas, marcadas como **dados de exemplo**. Em **Produtos** é possível:
+
+- **Carregar exemplo** — restaura o conjunto de exemplo.
+- **Limpar dados** — apaga produtos e vendas e começa do zero.
+
+Qualquer edição remove o selo de exemplo. Os dados ficam no `localStorage` do navegador (`mercadinho-serido:v1`); nada é enviado a servidor.
 
 ## Como rodar
 
@@ -48,24 +60,9 @@ python3 -m http.server 8000
 
 Abra:
 
-- Aplicação: <http://localhost:8000>
-- Slides interativos: <http://localhost:8000/slides.html>
-- Slides em PDF: `slides.pdf`
-
-O `slides.pdf` é gerado a partir do deck renderizado (imagens), preservando o layout; o `slides.html` é a versão interativa e acessível.
-
-## GitHub Pages
-
-O deploy é automático a partir da branch `main` pelo workflow
-`.github/workflows/pages.yml`:
-
-**https://emiyakiritsugu3.github.io/SAD_02/**
-
-O site é estático e usa caminhos relativos, então funciona na subpasta do
-projeto. O workflow também pode ser disparado manualmente em **Actions → Deploy
-GitHub Pages → Run workflow**.
-
-Atalhos dos slides: `→`/espaço avançam; `←` voltam; `F` tela cheia; `N` notas do apresentador.
+- App: <http://localhost:8000>
+- Slides: <http://localhost:8000/slides.html>
+- PDF: `slides.pdf`
 
 ## Testes
 
@@ -73,76 +70,46 @@ Atalhos dos slides: `→`/espaço avançam; `←` voltam; `F` tela cheia; `N` no
 npm test
 ```
 
-A suíte usa `node:test` e cobre o motor AHP, previsão, estoque, plano, fornecedores e CSV. Estado atual: **57 testes passando**.
-
-## Dados e premissas
-
-| Fonte | Uso |
-|---|---|
-| IBGE — PPM 2025, tabela 3939 | Rebanho de Caicó/RN: 15.157 caprinos e 24.909 ovinos |
-| Embrapa CIM/Cepea — Boletim Set/2026 | RN: R$ 12,62/kg vivo; carcaça no Nordeste: R$ 22–32/kg |
-| Embrapa Caprinos e Ovinos | Custos de referência e coeficientes (peso ao abate, rendimento) |
-| Série de demanda | Ilustrativa, 52 semanas, com sazonalidade e seed fixa |
-| Fornecedores | Personas ilustrativas, incluindo um lote sem GTA para demonstrar o gate |
-
-Detalhes, fórmulas e como atualizar: [`docs/fontes-e-premissas.md`](docs/fontes-e-premissas.md).
+**54 testes** com `node:test`, cobrindo estado/persistência, produtos, semanas, séries, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as três abas, o CRUD de produtos, o lançamento de vendas, o resumo mensal, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
 
 ## Estrutura
 
-```
-SAD_02/
-├── .github/workflows/pages.yml
-├── .nojekyll
+```text
+.
 ├── index.html
 ├── style.css
+├── js/
+│   ├── estado.js      # localStorage, validação e exemplo
+│   ├── produtos.js    # cadastro e validação
+│   ├── vendas.js      # semanas, séries e resumo mensal
+│   ├── previsao.js    # média móvel, SES, regressão e backtest
+│   ├── compras.js     # compra sugerida
+│   ├── charts.js      # gráfico SVG
+│   └── app.js         # interface das 3 abas
+├── test/
 ├── slides.html
 ├── slides.pdf
-├── slides/
-│   ├── fonts/            # Fraunces e Archivo (OFL)
-│   ├── img/              # screenshots e slides renderizados
-│   └── roteiro.md        # roteiro de apresentação e perguntas prováveis
-├── js/
-│   ├── ahp.js
-│   ├── dados.js
-│   ├── previsao.js
-│   ├── estoque.js
-│   ├── plano.js
-│   ├── fornecedores.js
-│   ├── csv.js
-│   ├── importacao.js
-│   ├── charts.js
-│   └── app.js
-├── test/
+├── slides/roteiro.md
 ├── docs/
-│   ├── contexto-e-decisoes.md
-│   ├── auditoria-mercado.md
-│   ├── fontes-e-premissas.md
-│   └── superpowers/
-│       ├── specs/
-│       └── plans/
-└── README.md
+│   ├── superpowers/specs/2026-11-27-mercadinho-serido-design.md
+│   ├── superpowers/plans/2026-11-27-mercadinho-serido-mvp.md
+│   └── arquivo/       # legado do frigorífico
+└── .github/workflows/pages.yml
 ```
 
-`material_do_prof/` é uso local e está no `.gitignore`; o material do professor não é redistribuído.
+## Limitações e próximos passos
 
-## Documentação
+- Estoque manual; o app não é PDV e não importa notas.
+- Sem lead time, validade/perecíveis, orçamento ou comparação de fornecedores.
+- Sem CSV, multiusuário ou integração com ERP.
+- A previsão é uma sugestão; o dono decide a compra final.
 
-- **Spec:** [`docs/superpowers/specs/2026-11-26-sad-frigorifico-serido-design.md`](docs/superpowers/specs/2026-11-26-sad-frigorifico-serido-design.md)
-- **Plano de implementação:** [`docs/superpowers/plans/2026-11-26-sad-frigorifico-serido-mvp.md`](docs/superpowers/plans/2026-11-26-sad-frigorifico-serido-mvp.md)
-- **Auditoria de mercado:** [`docs/auditoria-mercado.md`](docs/auditoria-mercado.md)
-- **Fontes e premissas:** [`docs/fontes-e-premissas.md`](docs/fontes-e-premissas.md)
-- **Roteiro da apresentação:** [`slides/roteiro.md`](slides/roteiro.md)
+Esses itens ficam como trabalho futuro. O foco do MVP é a decisão semanal, com uma interface simples e explicável.
 
-## Próximos passos
+## Legado
 
-1. Importar o histórico real de um frigorífico e validar o backtest.
-2. Integrar ao ERP/planilha existente via CSV/API, sem substituir o sistema de registro.
-3. Adicionar mix de cortes e programação linear.
-4. Evoluir para multiusuário/cloud, alertas e trilha de auditoria.
-5. Validar o recorte com um frigorífico, cooperativa ou EMATER.
+A versão anterior, um SAD de planejamento de abate/estoque para um frigorífico, está preservada na tag `legacy-frigorifico-v1` e na branch `legacy/frigorifico`. Veja `docs/arquivo/README.md` para o motivo do pivô e como rodar o legado.
 
-## Créditos
+## Deploy
 
-- Dados: IBGE (PPM 2025); Embrapa CIM/Cepea (Set/2026); Embrapa Caprinos e Ovinos.
-- Fontes dos slides: [Fraunces](https://fonts.google.com/specimen/Fraunces) e [Archivo](https://fonts.google.com/specimen/Archivo), Google Fonts (OFL).
-- Disciplina: DCT2403 — Sistemas de Apoio à Decisão, UFRN/CERES.
+O workflow `.github/workflows/pages.yml` publica a `main` no GitHub Pages. O site é estático e usa caminhos relativos, então funciona na subpasta do projeto.
