@@ -225,6 +225,13 @@ Meta: 25–30 testes passando.
 - Manter o workflow do GitHub Pages; publicar após o merge na `main` e verificar a URL.
 - O app continua estático, sem build e sem dependências de runtime.
 
+### 10.1 Legado do frigorífico
+
+- A versão frigorífico fica preservada na tag `legacy-frigorifico-v1` e na branch `legacy/frigorifico`, no commit `c875f81`.
+- Ela não é publicada junto com o mercadinho; serve como histórico e referência da evolução do projeto.
+- `docs/arquivo/README.md` explica o motivo do pivô e como rodar o legado.
+- Se o frigorífico precisar voltar a ficar publicado em outra URL, criar um repositório separado a partir dessa tag.
+
 ## 11. Critérios de aceite
 
 1. O dono cadastra produtos e lança vendas semanais sem instrução técnica.
