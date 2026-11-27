@@ -1,5 +1,10 @@
 // Estado do Mercadinho Seridó: produtos, dias de venda e migração do formato semanal.
+const Datas = typeof module !== "undefined" && module.exports
+  ? require("./datas.js")
+  : globalThis.Datas;
+
 const Estado = (() => {
+  const { formatarISO, normalizarDia, normalizarSemana, adicionarDias, adicionarSemanas } = Datas;
   const CHAVE = "mercadinho-serido:v2";
   const CHAVE_ANTERIOR = "mercadinho-serido:v1";
   const UNIDADES = new Set(["un", "kg", "L"]);
@@ -28,53 +33,6 @@ const Estado = (() => {
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-  }
-
-  function formatarISO(data) {
-    const ano = data.getFullYear();
-    const mes = String(data.getMonth() + 1).padStart(2, "0");
-    const dia = String(data.getDate()).padStart(2, "0");
-    return `${ano}-${mes}-${dia}`;
-  }
-
-  function paraData(data) {
-    if (typeof data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
-      return new Date(`${data}T12:00:00`);
-    }
-    return new Date(data);
-  }
-
-  function normalizarDia(data = new Date()) {
-    const base = paraData(data);
-    if (Number.isNaN(base.getTime())) return formatarISO(new Date());
-    base.setHours(12, 0, 0, 0);
-    return formatarISO(base);
-  }
-
-  function segundaAtual() {
-    const hoje = new Date();
-    hoje.setHours(12, 0, 0, 0);
-    hoje.setDate(hoje.getDate() - ((hoje.getDay() + 6) % 7));
-    return formatarISO(hoje);
-  }
-
-  function normalizarSemana(data = new Date()) {
-    const base = paraData(data);
-    if (Number.isNaN(base.getTime())) return segundaAtual();
-    base.setHours(12, 0, 0, 0);
-    base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
-    return formatarISO(base);
-  }
-
-  function adicionarDias(dataISO, n) {
-    const base = new Date(`${dataISO}T12:00:00`);
-    if (Number.isNaN(base.getTime())) return normalizarDia(new Date());
-    base.setDate(base.getDate() + Number(n || 0));
-    return formatarISO(base);
-  }
-
-  function adicionarSemanas(dataISO, n) {
-    return adicionarDias(dataISO, Number(n || 0) * 7);
   }
 
   function estadoVazio() {
