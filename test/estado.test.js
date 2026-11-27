@@ -136,7 +136,8 @@ test("carregar e salvar não lançam com localStorage bloqueado", () => {
     assert.match(aviso, /Carregamos o exemplo/);
     assert.equal(Estado.salvar(Estado.estadoVazio()), false);
   } finally {
-    Object.defineProperty(globalThis, "localStorage", descritor);
+    if (descritor) Object.defineProperty(globalThis, "localStorage", descritor);
+    else delete globalThis.localStorage;
   }
 });
 
