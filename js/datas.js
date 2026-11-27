@@ -16,9 +16,7 @@ const Datas = (() => {
     if (typeof data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
       return new Date(`${data}T12:00:00`);
     }
-    const criada = new Date(data);
-    if (!Number.isNaN(criada.getTime())) criada.setHours(12, 0, 0, 0);
-    return criada;
+    return new Date(Number.NaN);
   }
 
   function normalizarDia(data = new Date()) {

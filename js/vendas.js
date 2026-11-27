@@ -10,6 +10,7 @@ const Vendas = (() => {
       throw new Error("Cadastre pelo menos um produto.");
     }
     const ids = new Set(produtos.map((p) => p.id));
+    const produtosPorId = new Map(produtos.map((p) => [p.id, p]));
     const limpos = {};
     let total = 0;
     for (const [id, valor] of Object.entries(valores ?? {})) {
@@ -18,6 +19,9 @@ const Vendas = (() => {
         throw new TypeError("Quantidade inválida.");
       }
       if (valor < 0) throw new Error("A quantidade não pode ser negativa.");
+      if (produtosPorId.get(id)?.unidade === "un" && !Number.isInteger(valor)) {
+        throw new Error("Produtos em unidade devem ter quantidade inteira.");
+      }
       if (valor > 0) {
         limpos[id] = valor;
         total += valor;
@@ -26,7 +30,11 @@ const Vendas = (() => {
     if (total <= 0) {
       throw new Error("Registre pelo menos um produto com quantidade maior que zero.");
     }
-    const dia = { data: normalizarDia(data), valores: limpos };
+    const diaNormalizado = normalizarDia(data);
+    if (diaNormalizado > normalizarDia(new Date())) {
+      throw new Error("Não registre vendas futuras.");
+    }
+    const dia = { data: diaNormalizado, valores: limpos };
     const outros = (Array.isArray(dias) ? dias : []).filter((d) => d.data !== dia.data);
     return [...outros, dia].sort((a, b) => a.data.localeCompare(b.data));
   }

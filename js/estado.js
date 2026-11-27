@@ -67,15 +67,16 @@ const Estado = (() => {
     const normalizados = pesos.map((p) => p / soma);
     const dias = Array.from({ length: quantidadeDias }, () => ({}));
     for (const [id, total] of Object.entries(valores ?? {})) {
-      let restante = Number(total) || 0;
-      if (restante <= 0) continue;
+      const totalOriginal = Number(total) || 0;
+      if (totalOriginal <= 0) continue;
+      let restante = totalOriginal;
       for (let i = 0; i < quantidadeDias - 1; i++) {
-        const alvo = Math.round(restante * normalizados[i]);
+        const alvo = Math.round(totalOriginal * normalizados[i]);
         const valor = Math.min(restante, Math.max(0, alvo));
         if (valor > 0) dias[i][id] = valor;
         restante -= valor;
       }
-      if (restante > 0) dias[quantidadeDias - 1][id] = Math.round(restante * 100) / 100;
+      if (restante > 0) dias[quantidadeDias - 1][id] = restante;
     }
     return dias;
   }
@@ -124,8 +125,9 @@ const Estado = (() => {
     if (datas.has(dia.data)) return false;
     datas.add(dia.data);
     if (!dia.valores || typeof dia.valores !== "object" || Array.isArray(dia.valores)) return false;
-    if (Object.keys(dia.valores).length === 0) return false;
-    for (const [id, valor] of Object.entries(dia.valores)) {
+    const entradas = Object.entries(dia.valores);
+    if (entradas.length === 0 || !entradas.some(([, valor]) => valor > 0)) return false;
+    for (const [id, valor] of entradas) {
       if (!ids.has(id) || !numeroValido(valor)) return false;
     }
     return true;
@@ -163,8 +165,9 @@ const Estado = (() => {
       if (datas.has(semana.data)) return false;
       datas.add(semana.data);
       if (!semana.valores || typeof semana.valores !== "object" || Array.isArray(semana.valores)) return false;
-      if (Object.keys(semana.valores).length === 0) return false;
-      for (const [id, valor] of Object.entries(semana.valores)) {
+      const entradas = Object.entries(semana.valores);
+      if (entradas.length === 0 || !entradas.some(([, valor]) => valor > 0)) return false;
+      for (const [id, valor] of entradas) {
         if (!ids.has(id) || !numeroValido(valor)) return false;
       }
     }
@@ -212,11 +215,18 @@ const Estado = (() => {
           const antigo = JSON.parse(brutoV1);
           if (validarV1(antigo)) {
             if (antigo.exemplo) return { estado: estadoExemplo(), aviso: null };
-            return { estado: migrarV1(antigo), aviso: AVISO_MIGRACAO };
+            const migrado = migrarV1(antigo);
+            try {
+              alvo.setItem(CHAVE, JSON.stringify(migrado));
+            } catch (_) {
+              // v2 será salvo na primeira edição.
+            }
+            return { estado: migrado, aviso: AVISO_MIGRACAO };
           }
         } catch (_) {
-          // JSON antigo inválido: cai no exemplo abaixo.
+          // JSON antigo inválido: o aviso abaixo explica o fallback.
         }
+        return { estado: estadoExemplo(), aviso: AVISO };
       }
       return { estado: estadoExemplo(), aviso: null };
     } catch (erro) {

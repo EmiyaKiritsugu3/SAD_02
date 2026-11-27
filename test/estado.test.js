@@ -198,3 +198,94 @@ test("carregar v1 com JSON inválido cai no exemplo", () => {
 test("normalizarDia de data vazia cai em hoje", () => {
   assert.equal(Estado.normalizarDia(""), Estado.normalizarDia(new Date()));
 });
+
+test("exemplo distribui a semana sem pico artificial", () => {
+  const s = Estado.estadoExemplo(new Date("2026-11-27T12:00:00"));
+  const porSemana = new Map();
+  for (const dia of s.dias) {
+    const valor = dia.valores["p-arroz"] || 0;
+    if (valor <= 0) continue;
+    const semana = Estado.normalizarSemana(dia.data);
+    if (!porSemana.has(semana)) porSemana.set(semana, []);
+    porSemana.get(semana).push(valor);
+  }
+  for (const valores of porSemana.values()) {
+    const total = valores.reduce((a, b) => a + b, 0);
+    assert.ok(Math.max(...valores) <= total * 0.3, `pico ${Math.max(...valores)}/${total}`);
+  }
+});
+
+test("carregar v1 inválido devolve exemplo com aviso", () => {
+  const storage = memoria();
+  storage.dados[Estado.CHAVE_ANTERIOR] = "{quebrado";
+  const um = Estado.carregar(storage);
+  assert.equal(um.estado.exemplo, true);
+  assert.match(um.aviso, /Carregamos o exemplo/);
+
+  const outro = memoria();
+  outro.dados[Estado.CHAVE_ANTERIOR] = JSON.stringify({ versao: 1, produtos: [], semanas: "x", exemplo: false });
+  const dois = Estado.carregar(outro);
+  assert.equal(dois.estado.exemplo, true);
+  assert.match(dois.aviso, /Carregamos o exemplo/);
+});
+
+test("migração é persistida e não repete o aviso", () => {
+  const storage = memoria();
+  storage.dados[Estado.CHAVE_ANTERIOR] = JSON.stringify({
+    versao: 1, produtos: [produtoExemplo()],
+    semanas: [{ data: "2026-11-23", valores: { "p-teste": 10 } }], exemplo: false,
+  });
+  const primeira = Estado.carregar(storage);
+  assert.match(primeira.aviso, /migrados/);
+  assert.ok(storage.dados[Estado.CHAVE]);
+  const segunda = Estado.carregar(storage);
+  assert.equal(segunda.aviso, null);
+  assert.deepEqual(segunda.estado, primeira.estado);
+});
+
+test("validar rejeita dia só com zeros", () => {
+  const s = Estado.estadoExemplo(new Date("2026-11-27T12:00:00"));
+  const id = Object.keys(s.dias[0].valores)[0];
+  s.dias[0].valores = { [id]: 0 };
+  assert.equal(Estado.validar(s), false);
+});
+
+test("migração preserva total fracionário", () => {
+  const v1 = {
+    versao: 1, produtos: [produtoExemplo()],
+    semanas: [{ data: "2026-11-23", valores: { "p-teste": 0.125 } }], exemplo: false,
+  };
+  const v2 = Estado.migrarV1(v1);
+  const soma = v2.dias.reduce((s, d) => s + (d.valores["p-teste"] || 0), 0);
+  assert.equal(soma, 0.125);
+});
+
+test("migração preserva o total de cada semana", () => {
+  const v1 = {
+    versao: 1,
+    produtos: [produtoExemplo()],
+    semanas: [
+      { data: "2026-11-09", valores: { "p-teste": 7 } },
+      { data: "2026-11-16", valores: { "p-teste": 5 } },
+    ],
+    exemplo: false,
+  };
+  const v2 = Estado.migrarV1(v1);
+  for (const semana of v1.semanas) {
+    const inicio = semana.data;
+    const fim = Estado.adicionarDias(inicio, 6);
+    const soma = v2.dias
+      .filter((d) => d.data >= inicio && d.data <= fim)
+      .reduce((s, d) => s + (d.valores["p-teste"] || 0), 0);
+    assert.equal(soma, semana.valores["p-teste"]);
+  }
+});
+
+test("salvar nunca lança quando setItem falha", () => {
+  const storage = {
+    getItem: () => null,
+    setItem: () => { throw new Error("quota"); },
+  };
+  assert.equal(Estado.salvar(Estado.estadoVazio(), storage), false);
+  assert.ok(Estado.ultimoErroSalvar instanceof Error);
+});

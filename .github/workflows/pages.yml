@@ -24,6 +24,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Testes
+        run: npm test
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

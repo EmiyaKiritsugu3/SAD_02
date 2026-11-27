@@ -185,3 +185,41 @@ test("atualizar um dia para zero é rejeitado", () => {
   const dias = [{ data: "2026-11-25", valores: { a: 3 } }];
   assert.throws(() => Vendas.salvarDia(dias, "2026-11-25", { a: 0 }, PRODUTOS), /pelo menos um/i);
 });
+
+test("salvarDia rejeita data futura", () => {
+  const hoje = Vendas.normalizarDia(new Date());
+  const amanha = Vendas.adicionarDias(hoje, 1);
+  assert.throws(() => Vendas.salvarDia([], amanha, { a: 1 }, PRODUTOS), /futuras/);
+});
+
+test("salvarDia rejeita fração em produto un", () => {
+  assert.throws(() => Vendas.salvarDia([], "2026-11-25", { a: 1.5 }, PRODUTOS), /inteira/);
+});
+
+test("normalizarDia de null ou timestamp com offset cai em hoje", () => {
+  const hoje = Vendas.normalizarDia(new Date());
+  assert.equal(Vendas.normalizarDia(null), hoje);
+  assert.equal(Vendas.normalizarDia("2024-01-15T00:00:00.000Z"), hoje);
+});
+
+test("série semanal preenche lacuna real entre semanas", () => {
+  const dias = [
+    { data: "2026-12-31", valores: { a: 1 } },
+    { data: "2027-01-12", valores: { a: 2 } },
+  ];
+  assert.deepEqual(Vendas.serieSemanal(dias, "a"), {
+    semanas: ["2026-12-28", "2027-01-04", "2027-01-11"],
+    valores: [1, 0, 2],
+  });
+});
+
+test("série de a começa na primeira venda mesmo com b antes", () => {
+  const dias = [
+    { data: "2026-11-01", valores: { b: 2 } },
+    { data: "2026-11-02", valores: { a: 5 } },
+  ];
+  assert.deepEqual(Vendas.serieSemanal(dias, "a"), {
+    semanas: ["2026-11-02"],
+    valores: [5],
+  });
+});

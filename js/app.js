@@ -8,6 +8,7 @@ const App = (() => {
     produtoSelecionado: null,
     dataSelecionada: Vendas.normalizarDia(new Date()),
     periodo: "semana",
+    periodoReferencia: Vendas.normalizarDia(new Date()),
     filtro: "",
     produtoEditando: null,
     erroPersistencia: null,
@@ -111,6 +112,7 @@ const App = (() => {
       state.produtoSelecionado = state.produtos[0]?.id ?? null;
     }
     state.dataSelecionada = Vendas.normalizarDia(state.dataSelecionada || new Date());
+    state.periodoReferencia = Vendas.normalizarDia(state.periodoReferencia || state.dataSelecionada || new Date());
     state.produtoEditando = null;
   }
 
@@ -235,7 +237,7 @@ const App = (() => {
     }).join("");
 
     const avisoSemVendas = state.dias.length === 0
-      ? `<div class="aviso"><strong>Sem vendas ainda.</strong> Cadastre a primeira semana para o app calcular a previsão e a compra.</div>`
+      ? `<div class="aviso"><strong>Sem vendas ainda.</strong> Cadastre o primeiro dia para o app calcular a previsão e a compra.</div>`
       : "";
     const avisoAtraso = atrasada
       ? `<div class="aviso"><strong>Última venda antiga.</strong> A compra é para a semana seguinte à última venda registrada (${fmtDataLonga(proxima)}). Atualize as vendas para uma previsão mais recente.</div>`
@@ -378,7 +380,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         </tr>`;
     }).join("");
 
-    const resumo = Vendas.resumoPeriodo(state.dias, state.produtos, state.periodo, state.dataSelecionada);
+    const resumo = Vendas.resumoPeriodo(state.dias, state.produtos, state.periodo, state.periodoReferencia);
     const opcoesPeriodo = [["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"], ["ano", "Ano"]]
       .map(([valor, rotulo]) => `<option value="${valor}" ${state.periodo === valor ? "selected" : ""}>${rotulo}</option>`)
       .join("");
@@ -407,7 +409,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         </div>
         <div class="semana-barra">
           <label class="campo">Dia
-            <input id="dia-data" type="date" value="${state.dataSelecionada}">
+            <input id="dia-data" type="date" max="${Vendas.normalizarDia(new Date())}" value="${state.dataSelecionada}">
           </label>
           <div class="acoes">
             <button class="botao secundario pequeno" type="button" data-acao="dia-anterior">← Dia anterior</button>
@@ -438,6 +440,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
           </label>
           <div class="acoes">
             <button class="botao secundario pequeno" type="button" data-acao="periodo-anterior">← Período</button>
+            <button class="botao secundario pequeno" type="button" data-acao="periodo-hoje">Hoje</button>
             <button class="botao secundario pequeno" type="button" data-acao="periodo-proximo">Período →</button>
           </div>
         </div>
@@ -550,22 +553,37 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
   }
 
   function deslocarPeriodo(delta) {
-    const base = new Date(`${state.dataSelecionada}T12:00:00`);
+    const base = new Date(`${state.periodoReferencia}T12:00:00`);
     if (state.periodo === "dia") {
-      state.dataSelecionada = Vendas.adicionarDias(state.dataSelecionada, delta);
+      state.periodoReferencia = Vendas.adicionarDias(state.periodoReferencia, delta);
     } else if (state.periodo === "semana") {
-      state.dataSelecionada = Vendas.adicionarDias(state.dataSelecionada, delta * 7);
+      state.periodoReferencia = Vendas.adicionarDias(state.periodoReferencia, delta * 7);
     } else if (state.periodo === "mes") {
       base.setDate(1);
       base.setMonth(base.getMonth() + delta);
-      state.dataSelecionada = Vendas.normalizarDia(base);
+      state.periodoReferencia = Vendas.normalizarDia(base);
     } else {
       base.setDate(1);
       base.setMonth(0);
       base.setFullYear(base.getFullYear() + delta);
-      state.dataSelecionada = Vendas.normalizarDia(base);
+      state.periodoReferencia = Vendas.normalizarDia(base);
     }
-    render();
+  }
+
+  function capturarDiaEditado() {
+    const valores = {};
+    document.querySelectorAll("[data-venda-produto]").forEach((input) => {
+      valores[input.dataset.vendaProduto] = input.value;
+    });
+    return { data: state.dataSelecionada, valores };
+  }
+
+  function restaurarDiaEditado(draft) {
+    if (!draft || draft.data !== state.dataSelecionada) return;
+    document.querySelectorAll("[data-venda-produto]").forEach((input) => {
+      const valor = draft.valores[input.dataset.vendaProduto];
+      if (valor !== undefined) input.value = valor;
+    });
   }
 
   function salvarDia() {
@@ -607,6 +625,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     aplicarEstado(Estado.estadoExemplo());
     state.dataSelecionada = Vendas.normalizarDia(new Date());
     state.periodo = "semana";
+    state.periodoReferencia = Vendas.normalizarDia(new Date());
     state.filtro = "";
     state.aba = "compras";
     salvarComAviso("Exemplo carregado.");
@@ -618,6 +637,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     aplicarEstado(Estado.estadoVazio());
     state.dataSelecionada = Vendas.normalizarDia(new Date());
     state.periodo = "semana";
+    state.periodoReferencia = Vendas.normalizarDia(new Date());
     state.filtro = "";
     state.aba = "produtos";
     salvarComAviso("Dados apagados.");
@@ -708,16 +728,36 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       else if (acao === "salvar-dia") salvarDia();
       else if (acao === "excluir-dia") excluirDia();
       else if (acao === "dia-anterior") {
-        state.dataSelecionada = Vendas.adicionarDias(state.dataSelecionada, -1);
+        const novo = Vendas.adicionarDias(state.dataSelecionada, -1);
+        state.dataSelecionada = novo;
+        state.periodoReferencia = novo;
         render();
+        document.getElementById("dia-data")?.focus();
       } else if (acao === "dia-proximo") {
-        state.dataSelecionada = Vendas.adicionarDias(state.dataSelecionada, 1);
+        const hoje = Vendas.normalizarDia(new Date());
+        const novo = Vendas.adicionarDias(state.dataSelecionada, 1);
+        if (novo > hoje) {
+          toast("Não há dias futuros.", true);
+          return;
+        }
+        state.dataSelecionada = novo;
+        state.periodoReferencia = novo;
         render();
+        document.getElementById("dia-data")?.focus();
       } else if (acao === "hoje") {
-        state.dataSelecionada = Vendas.normalizarDia(new Date());
+        const hoje = Vendas.normalizarDia(new Date());
+        state.dataSelecionada = hoje;
+        state.periodoReferencia = hoje;
         render();
-      } else if (acao === "periodo-anterior") deslocarPeriodo(-1);
-      else if (acao === "periodo-proximo") deslocarPeriodo(1);
+        document.getElementById("dia-data")?.focus();
+      } else if (acao === "periodo-anterior" || acao === "periodo-proximo" || acao === "periodo-hoje") {
+        const draft = capturarDiaEditado();
+        if (acao === "periodo-hoje") state.periodoReferencia = Vendas.normalizarDia(new Date());
+        else deslocarPeriodo(acao === "periodo-anterior" ? -1 : 1);
+        render();
+        restaurarDiaEditado(draft);
+        document.getElementById("periodo-select")?.focus();
+      }
       else if (acao === "editar-produto") {
         state.produtoEditando = botao.dataset.produto;
         state.aba = "produtos";
@@ -744,14 +784,26 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       if (event.target.id === "dia-data") {
         if (!event.target.value) {
           render();
+          document.getElementById("dia-data")?.focus();
           return;
         }
-        state.dataSelecionada = Vendas.normalizarDia(event.target.value);
+        const novo = Vendas.normalizarDia(event.target.value);
+        if (novo > Vendas.normalizarDia(new Date())) {
+          toast("Não registre vendas futuras.", true);
+          render();
+          document.getElementById("dia-data")?.focus();
+          return;
+        }
+        state.dataSelecionada = novo;
+        state.periodoReferencia = novo;
         render();
         document.getElementById("dia-data")?.focus();
       } else if (event.target.id === "periodo-select") {
+        const draft = capturarDiaEditado();
         state.periodo = event.target.value;
         render();
+        restaurarDiaEditado(draft);
+        document.getElementById("periodo-select")?.focus();
       }
     });
 

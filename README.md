@@ -14,7 +14,7 @@ App estático que ajuda o dono de um mercadinho de bairro em Caicó/RN a decidir
 
 ### 1. Produtos
 
-Cadastre nome, unidade (`un`, `kg` ou `L`), custo, preço, estoque atual e estoque mínimo. O custo entra na compra; o preço, na receita mensal.
+Cadastre nome, unidade (`un`, `kg` ou `L`), custo, preço, estoque atual e estoque mínimo. O custo entra na compra; o preço, na receita por período.
 
 ### 2. Vendas
 
@@ -70,7 +70,7 @@ Abra:
 npm test
 ```
 
-**61 testes** com `node:test`, cobrindo estado/persistência, migração do formato semanal, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as três abas, o CRUD de produtos, o lançamento diário, os períodos, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
+**73 testes** com `node:test`, cobrindo estado/persistência, migração do formato semanal, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as três abas, o CRUD de produtos, o lançamento diário, os períodos, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
 
 ## Estrutura
 
@@ -79,6 +79,7 @@ npm test
 ├── index.html
 ├── style.css
 ├── js/
+│   ├── datas.js       # helpers de data compartilhados
 │   ├── estado.js      # localStorage, validação e exemplo
 │   ├── produtos.js    # cadastro e validação
 │   ├── vendas.js      # dias, série semanal e resumos por período
