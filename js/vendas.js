@@ -21,9 +21,16 @@ const Vendas = (() => {
     return criada;
   }
 
+  function segundaAtual() {
+    const hoje = new Date();
+    hoje.setHours(12, 0, 0, 0);
+    hoje.setDate(hoje.getDate() - ((hoje.getDay() + 6) % 7));
+    return formatarISO(hoje);
+  }
+
   function normalizarSemana(data = new Date()) {
     const base = paraData(data);
-    if (Number.isNaN(base.getTime())) return formatarISO(new Date());
+    if (Number.isNaN(base.getTime())) return segundaAtual();
     base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
     return formatarISO(base);
   }
@@ -134,6 +141,10 @@ const Vendas = (() => {
     return ultima ? adicionarSemanas(ultima, 1) : null;
   }
 
+  function atrasada(ultima, hoje = normalizarSemana(new Date())) {
+    return Boolean(ultima && adicionarSemanas(ultima, 2) < hoje);
+  }
+
   function totalSemana(valores) {
     return Object.values(valores ?? {}).reduce((soma, valor) => {
       return Number.isFinite(valor) && valor > 0 ? soma + valor : soma;
@@ -143,7 +154,7 @@ const Vendas = (() => {
   return {
     normalizarSemana, adicionarSemanas, salvarSemana, removerSemana,
     removerProduto, serieProduto, resumoMensal, ultimaSemana, proximaSemana,
-    totalSemana,
+    atrasada, totalSemana,
   };
 })();
 

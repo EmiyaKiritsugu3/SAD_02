@@ -106,3 +106,15 @@ test("totalSemana ignora valores inválidos", () => {
   assert.equal(Vendas.totalSemana({ a: 2, b: NaN }), 2);
   assert.equal(Vendas.totalSemana({}), 0);
 });
+
+test("normalizarSemana de data vazia cai na segunda atual", () => {
+  const vazio = Vendas.normalizarSemana("");
+  assert.equal(new Date(`${vazio}T12:00:00`).getDay(), 1);
+  assert.equal(vazio, Vendas.normalizarSemana(new Date()));
+});
+
+test("atrasada avisa depois de duas semanas sem venda", () => {
+  assert.equal(Vendas.atrasada("2026-11-02", "2026-11-23"), true);
+  assert.equal(Vendas.atrasada("2026-11-09", "2026-11-23"), false);
+  assert.equal(Vendas.atrasada(null, "2026-11-23"), false);
+});

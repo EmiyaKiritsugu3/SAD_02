@@ -223,6 +223,8 @@ button { cursor: pointer; }
   margin-bottom: 14px;
 }
 .card-head p { color: var(--muted); margin-top: 3px; font-size: 0.88rem; }
+.card-head > div { min-width: 0; }
+.card-head h2 { overflow-wrap: anywhere; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .grid-2 > .card + .card { margin-top: 0; }
 
@@ -242,7 +244,8 @@ th:first-child { border-top-left-radius: 10px; }
 th:last-child { border-top-right-radius: 10px; }
 tbody tr:last-child td { border-bottom: none; }
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.produto-nome { display: grid; line-height: 1.25; }
+.produto-nome { display: grid; line-height: 1.25; min-width: 0; }
+.produto-nome strong { overflow-wrap: anywhere; }
 .produto-nome small { color: var(--muted); font-size: 0.75rem; }
 .linha-produto { cursor: pointer; }
 .linha-produto:hover td { background: rgba(181, 82, 47, 0.05); }
@@ -456,7 +459,11 @@ tbody tr:last-child td { border-bottom: none; }
   .card { padding: 16px; }
   .semana-label { text-align: left; }
   .campo input, .campo select { font-size: 16px; }
-  .tabela-vendas input { width: 88px; font-size: 16px; }
+  .filtro input { font-size: 16px; }
+  .chart { min-width: 620px; }
+  .aba { min-height: 44px; }
+  .botao.pequeno { min-height: 44px; }
+  .tabela-vendas input { width: 88px; font-size: 16px; min-height: 44px; }
   .rodape { width: calc(100% - 28px); flex-direction: column; }
   .acoes .botao { flex: 1 1 auto; }
 }

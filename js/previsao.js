@@ -95,7 +95,8 @@ const Previsao = (() => {
     const sem = Array.isArray(semanas) && semanas.length === valores.length
       ? semanas
       : valores.map((_, i) => i + 1);
-    const indice = sem.indexOf(Number(semanaRef));
+    const alvo = String(semanaRef);
+    const indice = sem.findIndex((w) => String(w) === alvo);
     const corte = indice >= 0 ? indice + 1 : sem.length;
     return { serie: valores.slice(0, corte), semanas: sem.slice(0, corte) };
   }

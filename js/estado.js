@@ -34,9 +34,16 @@ const Estado = (() => {
     return `${ano}-${mes}-${dia}`;
   }
 
+  function segundaAtual() {
+    const hoje = new Date();
+    hoje.setHours(12, 0, 0, 0);
+    hoje.setDate(hoje.getDate() - ((hoje.getDay() + 6) % 7));
+    return formatarISO(hoje);
+  }
+
   function normalizarSemana(data = new Date()) {
     const base = new Date(data);
-    if (Number.isNaN(base.getTime())) return formatarISO(new Date());
+    if (Number.isNaN(base.getTime())) return segundaAtual();
     base.setHours(12, 0, 0, 0);
     base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
     return formatarISO(base);
@@ -93,10 +100,13 @@ const Estado = (() => {
   function validarSemana(semana, ids, datas) {
     if (!semana || typeof semana.data !== "string") return false;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(semana.data)) return false;
-    if (new Date(`${semana.data}T12:00:00`).getDay() !== 1) return false;
+    const data = new Date(`${semana.data}T12:00:00`);
+    if (formatarISO(data) !== semana.data) return false;
+    if (data.getDay() !== 1) return false;
     if (datas.has(semana.data)) return false;
     datas.add(semana.data);
     if (!semana.valores || typeof semana.valores !== "object" || Array.isArray(semana.valores)) return false;
+    if (Object.keys(semana.valores).length === 0) return false;
     for (const [id, valor] of Object.entries(semana.valores)) {
       if (!ids.has(id) || !numeroValido(valor)) return false;
     }
@@ -118,12 +128,13 @@ const Estado = (() => {
     return true;
   }
 
-  function carregar(storage = globalThis.localStorage) {
+  function carregar(storage) {
     try {
-      if (!storage || typeof storage.getItem !== "function") {
+      const alvo = storage === undefined ? globalThis.localStorage : storage;
+      if (!alvo || typeof alvo.getItem !== "function") {
         return { estado: estadoExemplo(), aviso: null };
       }
-      const bruto = storage.getItem(CHAVE);
+      const bruto = alvo.getItem(CHAVE);
       if (!bruto) return { estado: estadoExemplo(), aviso: null };
       const salvo = JSON.parse(bruto);
       if (!validar(salvo)) return { estado: estadoExemplo(), aviso: AVISO };
@@ -134,10 +145,11 @@ const Estado = (() => {
     }
   }
 
-  function salvar(estado, storage = globalThis.localStorage) {
+  function salvar(estado, storage) {
     try {
-      if (!storage || typeof storage.setItem !== "function") return false;
-      storage.setItem(CHAVE, JSON.stringify(estado));
+      const alvo = storage === undefined ? globalThis.localStorage : storage;
+      if (!alvo || typeof alvo.setItem !== "function") return false;
+      alvo.setItem(CHAVE, JSON.stringify(estado));
       return true;
     } catch (erro) {
       ultimoErroSalvar = erro;

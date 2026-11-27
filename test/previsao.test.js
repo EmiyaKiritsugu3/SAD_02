@@ -81,3 +81,13 @@ test("paraSerie não projeta valores negativos", () => {
   const r = P.paraSerie([100, 80, 60, 40, 20, 10, 5, 0]);
   assert.ok(r.prev4.every((v) => Number.isFinite(v) && v >= 0));
 });
+
+test("serieAte aceita semanas ISO", () => {
+  const r = P.serieAte(
+    [10, 20, 30],
+    ["2026-11-02", "2026-11-09", "2026-11-16"],
+    "2026-11-09",
+  );
+  assert.deepEqual(r.serie, [10, 20]);
+  assert.deepEqual(r.semanas, ["2026-11-02", "2026-11-09"]);
+});

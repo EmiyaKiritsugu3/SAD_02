@@ -70,7 +70,7 @@ Abra:
 npm test
 ```
 
-**48 testes** com `node:test`, cobrindo estado/persistência, produtos, semanas, séries, previsão, compra sugerida e arredondamento. O smoke test com Playwright cobre as três abas, o CRUD de produtos, o lançamento de vendas, o resumo mensal, o exemplo/limpar e o mobile em 360 px.
+**54 testes** com `node:test`, cobrindo estado/persistência, produtos, semanas, séries, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as três abas, o CRUD de produtos, o lançamento de vendas, o resumo mensal, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
 
 ## Estrutura
 

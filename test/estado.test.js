@@ -88,3 +88,35 @@ test("salvar nunca lança quando o storage falha", () => {
   };
   assert.equal(Estado.salvar(Estado.estadoVazio(), storage), false);
 });
+
+test("normalizarSemana de data vazia cai na segunda atual", () => {
+  const vazio = Estado.normalizarSemana("");
+  assert.equal(new Date(`${vazio}T12:00:00`).getDay(), 1);
+  assert.equal(vazio, Estado.normalizarSemana(new Date()));
+});
+
+test("carregar e salvar não lançam com localStorage bloqueado", () => {
+  const descritor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    get() { throw new Error("blocked"); },
+  });
+  try {
+    const { estado, aviso } = Estado.carregar();
+    assert.equal(estado.exemplo, true);
+    assert.match(aviso, /Carregamos o exemplo/);
+    assert.equal(Estado.salvar(Estado.estadoVazio()), false);
+  } finally {
+    Object.defineProperty(globalThis, "localStorage", descritor);
+  }
+});
+
+test("validar rejeita data impossível e semana vazia", () => {
+  const s = Estado.estadoExemplo(new Date("2026-11-27T12:00:00"));
+  s.semanas[0].data = "2026-02-30";
+  assert.equal(Estado.validar(s), false);
+
+  const t = Estado.estadoExemplo(new Date("2026-11-27T12:00:00"));
+  t.semanas[0].valores = {};
+  assert.equal(Estado.validar(t), false);
+});

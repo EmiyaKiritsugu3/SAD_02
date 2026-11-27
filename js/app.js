@@ -11,6 +11,7 @@ const App = (() => {
     visaoMensal: false,
     filtro: "",
     produtoEditando: null,
+    erroPersistencia: null,
   };
 
   const nfBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -47,6 +48,17 @@ const App = (() => {
     return texto.charAt(0).toUpperCase() + texto.slice(1);
   }
 
+  function normalizarBusca(texto) {
+    const normalizado = String(texto ?? "").normalize("NFD");
+    let saida = "";
+    for (const caractere of normalizado) {
+      const codigo = caractere.codePointAt(0);
+      if (codigo >= 0x0300 && codigo <= 0x036f) continue;
+      saida += caractere.toLowerCase();
+    }
+    return saida;
+  }
+
   function metodoLabel(metodo) {
     return {
       mediaMovel: "Média móvel",
@@ -72,8 +84,24 @@ const App = (() => {
     toastTimer = setTimeout(() => { el.hidden = true; }, 3800);
   }
 
+  function atualizarAvisoPersistencia() {
+    const el = document.getElementById("aviso-persistencia");
+    if (!el) return;
+    el.hidden = !state.erroPersistencia;
+    el.textContent = state.erroPersistencia || "";
+  }
+
   function salvar() {
-    Estado.salvar({ versao: 1, produtos: state.produtos, semanas: state.semanas, exemplo: state.exemplo });
+    const ok = Estado.salvar({ versao: 1, produtos: state.produtos, semanas: state.semanas, exemplo: state.exemplo });
+    state.erroPersistencia = ok ? null : "Não foi possível gravar os dados neste navegador. As alterações valem só nesta sessão.";
+    atualizarAvisoPersistencia();
+    return ok;
+  }
+
+  function salvarComAviso(mensagem) {
+    const ok = salvar();
+    toast(ok ? mensagem : "Alteração feita, mas não foi possível gravar no navegador.", !ok);
+    return ok;
   }
 
   function aplicarEstado(estado) {
@@ -95,7 +123,16 @@ const App = (() => {
   }
 
   function iniciar() {
-    const { estado, aviso } = Estado.carregar();
+    let estado;
+    let aviso = null;
+    try {
+      const resultado = Estado.carregar();
+      estado = resultado.estado;
+      aviso = resultado.aviso;
+    } catch (_) {
+      estado = Estado.estadoExemplo();
+      aviso = "Não foi possível acessar o armazenamento. Carregamos o exemplo.";
+    }
     aplicarEstado(estado);
     ligarEventos();
     render();
@@ -111,6 +148,7 @@ const App = (() => {
     });
     const badge = document.getElementById("badge-exemplo");
     if (badge) badge.hidden = !state.exemplo;
+    atualizarAvisoPersistencia();
 
     if (state.aba === "vendas") renderVendas();
     else if (state.aba === "produtos") renderProdutos();
@@ -168,11 +206,11 @@ const App = (() => {
     const itens = Compras.lista(state.produtos, previsoes);
     const total = Compras.total(itens);
     const semDados = Compras.semDados(itens);
-    const proxima = Vendas.proximaSemana(state.semanas);
     const hoje = Vendas.normalizarSemana(new Date());
-    const atrasada = Boolean(proxima && Vendas.adicionarSemanas(proxima, 2) < hoje);
-    const filtro = state.filtro.trim().toLowerCase();
-    const visiveis = itens.filter((item) => !filtro || item.produto.nome.toLowerCase().includes(filtro));
+    const proxima = Vendas.proximaSemana(state.semanas);
+    const atrasada = Vendas.atrasada(Vendas.ultimaSemana(state.semanas), hoje);
+    const filtro = normalizarBusca(state.filtro);
+    const visiveis = itens.filter((item) => !filtro || normalizarBusca(item.produto.nome).includes(filtro));
 
     if (!state.produtoSelecionado || !state.produtos.some((p) => p.id === state.produtoSelecionado)) {
       state.produtoSelecionado = visiveis[0]?.produto.id ?? state.produtos[0].id;
@@ -193,7 +231,8 @@ const App = (() => {
       const custo = item.semDados || item.sugestao === 0 ? "—" : fmtBRL(item.custo);
       return `
         <tr class="linha-produto ${p.id === produtoSel.id ? "selecionado" : ""}"
-            data-produto="${esc(p.id)}" data-nome="${esc(p.nome.toLowerCase())}" tabindex="0">
+            data-produto="${esc(p.id)}" data-nome="${esc(normalizarBusca(p.nome))}"
+            aria-selected="${p.id === produtoSel.id}" tabindex="0" title="Ver a previsão deste produto">
           <td><span class="produto-nome"><strong>${esc(p.nome)}</strong><small>${esc(p.unidade)}</small></span></td>
           <td class="num">${previsao}</td>
           <td class="num">${fmtQtd(p.estoqueAtual)}</td>
@@ -229,7 +268,7 @@ const App = (() => {
       <section class="card" aria-labelledby="titulo-lista-compras">
         <div class="card-head">
           <div><h2 id="titulo-lista-compras">Lista de compras</h2><p>Previsão da próxima semana + estoque mínimo − estoque atual.</p></div>
-          <span class="badge">${visiveis.length} de ${itens.length}</span>
+          <span class="badge" id="badge-filtro" data-total="${itens.length}">${visiveis.length} de ${itens.length}</span>
         </div>
         <div class="filtro">
           <label for="filtro-compras">Buscar</label>
@@ -262,6 +301,7 @@ const App = (() => {
     const serie = dados.serie;
     const hist = serie.valores.slice(-12);
     const semanas = serie.semanas.slice(-12);
+    const nHist = Math.min(12, hist.length);
     const ultima = semanas.at(-1);
     const labels = [
       ...semanas.map(fmtData),
@@ -280,11 +320,17 @@ const App = (() => {
     });
     const mae = prev.metricas?.mae;
     const mape = prev.metricas?.mape;
+    const reais = prev.metricas?.reais || [];
+    const previstos = prev.metricas?.previstos || [];
+    const semanasBacktest = serie.semanas.slice(-reais.length);
+    const backtest = reais.length > 0
+      ? `<div class="tabela-wrap"><table class="tabela-backtest"><thead><tr><th>Semana</th><th class="num">Previsto</th><th class="num">Real</th></tr></thead><tbody>${reais.map((real, i) => `<tr><td>${fmtData(semanasBacktest[i])}</td><td class="num">${fmtQtd(previstos[i])} ${esc(produto.unidade)}</td><td class="num">${fmtQtd(real)} ${esc(produto.unidade)}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="sem-dados">Backtest indisponível para este produto.</p>`;
     return `
       <section class="card grafico-card" aria-labelledby="grafico-produto">
         <div class="card-head">
-          <div><h2 id="grafico-produto">${esc(produto.nome)}</h2><p>Últimas 12 semanas e previsão das próximas 4.</p></div>
-          <span class="badge">12 + 4 · ${esc(produto.unidade)}</span>
+          <div><h2 id="grafico-produto" tabindex="-1">${esc(produto.nome)}</h2><p>Últimas ${nHist} semanas e previsão das próximas 4.</p></div>
+          <span class="badge">${nHist} + 4 · ${esc(produto.unidade)}</span>
         </div>
         ${grafico}
         <details class="detalhes">
@@ -294,6 +340,8 @@ const App = (() => {
             <span>MAE: <strong>${mae == null ? "—" : `${fmtQtd(mae)} ${esc(produto.unidade)}`}</strong></span>
             <span>MAPE: <strong>${mape == null ? "—" : `${(mape * 100).toFixed(1).replace(".", ",")}%`}</strong></span>
           </div>
+          <p><strong>Backtest:</strong> últimas ${reais.length} semanas.</p>
+          ${backtest}
           <code class="formula">compra = max(0, previsão + estoque mínimo − estoque atual)
 previsão = ${fmtQtd(dados.previsao)} ${esc(produto.unidade)}
 estoque = ${fmtQtd(produto.estoqueAtual)}
@@ -305,6 +353,8 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
   function renderVendas() {
     const app = document.getElementById("app");
     if (!app) return;
+
+    state.semanaSelecionada = Vendas.normalizarSemana(state.semanaSelecionada);
 
     if (state.produtos.length === 0) {
       app.innerHTML = paginaHead("Rotina semanal", "Vendas", "Registre o que vendeu em cada semana.")
@@ -348,7 +398,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       ${state.exemplo ? `<div class="aviso"><strong>Dados de exemplo.</strong> Edite ou limpe em Produtos para usar os seus.</div>` : ""}
       <section class="card" aria-labelledby="titulo-lancamento">
         <div class="card-head">
-          <div><h2 id="titulo-lancamento">Lançamento semanal</h2><p>Escolha a semana, preencha as quantidades e salve.</p></div>
+          <div><h2 id="titulo-lancamento" tabindex="-1">Lançamento semanal</h2><p>Escolha a semana, preencha as quantidades e salve.</p></div>
           <span class="badge ${semana ? "ok" : ""}">${semana ? "Semana registrada" : "Nova semana"}</span>
         </div>
         <div class="semana-barra">
@@ -513,7 +563,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       </section>
       <section class="card" aria-labelledby="titulo-lista-produtos">
         <div class="card-head">
-          <div><h2 id="titulo-lista-produtos">Produtos cadastrados</h2><p>${state.produtos.length} produto(s).</p></div>
+          <div><h2 id="titulo-lista-produtos" tabindex="-1">Produtos cadastrados</h2><p>${state.produtos.length} produto(s).</p></div>
           <div class="acoes">
             <button class="botao secundario pequeno" type="button" data-acao="carregar-exemplo">Carregar exemplo</button>
             <button class="botao perigo pequeno" type="button" data-acao="limpar-dados">Limpar dados</button>
@@ -533,22 +583,26 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     const linhas = [...document.querySelectorAll("#tabela-compras tbody tr[data-produto]")];
     const semResultado = document.getElementById("sem-resultado");
     if (!input || linhas.length === 0) return;
-    const filtro = input.value.trim().toLowerCase();
+    const filtro = normalizarBusca(input.value.trim());
     let visiveis = 0;
     for (const linha of linhas) {
       const combina = !filtro || (linha.dataset.nome || "").includes(filtro);
       linha.hidden = !combina;
       if (combina) visiveis++;
     }
+    const badge = document.getElementById("badge-filtro");
+    if (badge) badge.textContent = `${visiveis} de ${badge.dataset.total}`;
     if (semResultado) semResultado.hidden = visiveis > 0;
   }
 
   function salvarSemana() {
+    state.semanaSelecionada = Vendas.normalizarSemana(state.semanaSelecionada);
     const inputs = [...document.querySelectorAll("[data-venda-produto]")];
     const valores = {};
     for (const input of inputs) {
       const valor = input.value.trim() === "" ? 0 : Number(input.value);
       if (!Number.isFinite(valor) || valor < 0) {
+        input.setAttribute("aria-invalid", "true");
         toast("Quantidade inválida.", true);
         input.focus();
         return;
@@ -558,9 +612,9 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     try {
       state.semanas = Vendas.salvarSemana(state.semanas, state.semanaSelecionada, valores, state.produtos);
       state.exemplo = false;
-      salvar();
-      toast("Semana salva.");
+      salvarComAviso("Semana salva.");
       render();
+      document.getElementById("titulo-lancamento")?.focus();
     } catch (err) {
       toast(err.message, true);
     }
@@ -571,8 +625,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     if (!confirm(`Excluir as vendas da semana de ${fmtDataLonga(state.semanaSelecionada)}?`)) return;
     state.semanas = Vendas.removerSemana(state.semanas, state.semanaSelecionada);
     state.exemplo = false;
-    salvar();
-    toast("Semana excluída.");
+    salvarComAviso("Semana excluída.");
     render();
   }
 
@@ -583,9 +636,8 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     state.visaoMensal = false;
     state.filtro = "";
     state.aba = "compras";
-    salvar();
+    salvarComAviso("Exemplo carregado.");
     render();
-    toast("Exemplo carregado.");
   }
 
   function limparDados() {
@@ -595,9 +647,8 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     state.visaoMensal = false;
     state.filtro = "";
     state.aba = "produtos";
-    salvar();
+    salvarComAviso("Dados apagados.");
     render();
-    toast("Dados apagados.");
   }
 
   function removerProduto(id) {
@@ -610,9 +661,8 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       if (state.produtoSelecionado === id) state.produtoSelecionado = state.produtos[0]?.id ?? null;
       state.produtoEditando = null;
       state.exemplo = false;
-      salvar();
+      salvarComAviso("Produto removido.");
       render();
-      toast("Produto removido.");
     } catch (err) {
       toast(err.message, true);
     }
@@ -637,21 +687,21 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       estoqueMinimo: numero("estoqueMinimo"),
     };
     try {
+      const mensagem = state.produtoEditando ? "Produto atualizado." : "Produto adicionado.";
       if (state.produtoEditando) {
         const atual = Produtos.porId(state.produtos, state.produtoEditando);
         const atualizado = Produtos.atualizar(atual, produto, state.produtos);
         state.produtos = state.produtos.map((p) => (p.id === atualizado.id ? atualizado : p));
-        toast("Produto atualizado.");
       } else {
         const novo = Produtos.criar(produto, state.produtos);
         state.produtos = [...state.produtos, novo];
         state.produtoSelecionado = novo.id;
-        toast("Produto adicionado.");
       }
       state.produtoEditando = null;
       state.exemplo = false;
-      salvar();
+      salvarComAviso(mensagem);
       render();
+      document.getElementById("titulo-lista-produtos")?.focus();
     } catch (err) {
       const erro = document.getElementById("erro-produto");
       if (erro) erro.textContent = err.message;
@@ -673,6 +723,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       if (linha) {
         state.produtoSelecionado = linha.dataset.produto;
         render();
+        document.getElementById("grafico-produto")?.focus();
         return;
       }
 
@@ -680,7 +731,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       if (!botao) return;
       const acao = botao.dataset.acao;
       if (acao === "ir-produtos") { state.aba = "produtos"; render(); }
-      else if (acao === "ir-vendas") { state.aba = "vendas"; render(); }
+      else if (acao === "ir-vendas") { state.aba = "vendas"; state.visaoMensal = false; render(); }
       else if (acao === "salvar-semana") salvarSemana();
       else if (acao === "excluir-semana") excluirSemana();
       else if (acao === "alternar-mensal") {
@@ -708,6 +759,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         event.preventDefault();
         state.produtoSelecionado = event.target.dataset.produto;
         render();
+        document.getElementById("grafico-produto")?.focus();
       }
     });
 
@@ -715,8 +767,13 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
 
     document.addEventListener("change", (event) => {
       if (event.target.id === "semana-data") {
+        if (!event.target.value) {
+          render();
+          return;
+        }
         state.semanaSelecionada = Vendas.normalizarSemana(event.target.value);
         render();
+        document.getElementById("semana-data")?.focus();
       } else if (event.target.id === "mes-select") {
         state.mesSelecionado = event.target.value;
         render();
@@ -727,6 +784,8 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       if (event.target.matches('[data-campo="filtro"]')) {
         state.filtro = event.target.value;
         filtrarLinhas();
+      } else if (event.target.matches("[data-venda-produto]")) {
+        event.target.removeAttribute("aria-invalid");
       }
     });
   }
