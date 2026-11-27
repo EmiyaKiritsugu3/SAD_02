@@ -6,51 +6,73 @@
   <meta name="description" content="Mercadinho Seridó — SAD de compra semanal para um mercadinho de bairro em Caicó/RN. Preveja as vendas e saiba quanto comprar de cada produto.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5522f'/%3E%3Ctext x='32' y='43' font-family='Georgia' font-size='26' fill='%23fff8ee' text-anchor='middle'%3EMS%3C/text%3E%3C/svg%3E">
   <title>Mercadinho Seridó — SAD de compra semanal</title>
-  <link rel="stylesheet" href="style.css?v=20261127f">
+  <link rel="stylesheet" href="style.css?v=20261127g">
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <div class="app">
-    <header class="topbar">
-      <button class="marca" type="button" data-aba="compras" aria-label="Ir para Compras">
-        <span class="marca-mark" aria-hidden="true">MS</span>
-        <span class="marca-texto">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">MS</span>
+        <div>
           <strong>Mercadinho Seridó</strong>
           <small>Caicó/RN</small>
-        </span>
-      </button>
+        </div>
+      </div>
 
-      <nav class="abas" aria-label="Navegação principal">
-        <button class="aba ativa" type="button" data-aba="compras" aria-current="page">Compras</button>
-        <button class="aba" type="button" data-aba="vendas">Vendas</button>
-        <button class="aba" type="button" data-aba="produtos">Produtos</button>
+      <nav aria-label="Navegação principal">
+        <button class="nav-item ativo" type="button" data-aba="compras" aria-current="page">
+          <span class="nav-icone" aria-hidden="true">▤</span> Compras
+        </button>
+        <button class="nav-item" type="button" data-aba="previsao">
+          <span class="nav-icone" aria-hidden="true">↗</span> Previsão
+        </button>
+        <button class="nav-item" type="button" data-aba="vendas">
+          <span class="nav-icone" aria-hidden="true">◧</span> Vendas
+        </button>
+        <button class="nav-item" type="button" data-aba="produtos">
+          <span class="nav-icone" aria-hidden="true">⌂</span> Produtos
+        </button>
       </nav>
 
-      <span id="badge-exemplo" class="badge" hidden>Dados de exemplo</span>
-    </header>
+      <div class="sidebar-foot">
+        <span id="badge-exemplo" class="badge estimativa" hidden>Dados de exemplo</span>
+        <span class="badge fonte">Dados locais</span>
+        <p class="sidebar-nota">Camada de decisão semanal. Não substitui o caixa ou o ERP do mercadinho.</p>
+      </div>
+    </aside>
 
     <main id="conteudo" class="main" tabindex="-1">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Mercadinho Seridó · Caicó/RN</p>
+          <h1 id="titulo-aba">Compras</h1>
+          <p id="subtitulo-aba" class="subtitulo">Quanto comprar de cada produto para a próxima semana.</p>
+        </div>
+        <div id="topbar-acoes" class="topbar-acoes"></div>
+      </header>
+
       <div id="aviso-persistencia" class="aviso perigo" role="alert" hidden></div>
       <section id="app" aria-label="Conteúdo da aba"></section>
       <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-    </main>
 
-    <footer class="rodape">
-      <span>Camada de decisão semanal. Não substitui o caixa ou o ERP do mercadinho.</span>
-      <span>Os dados ficam salvos neste navegador.</span>
-    </footer>
+      <footer class="rodape">
+        <span>Camada de decisão semanal. Não substitui o caixa ou o ERP do mercadinho.</span>
+        <span>Os dados ficam salvos neste navegador.</span>
+      </footer>
+    </main>
   </div>
 
   <noscript>Este SAD precisa de JavaScript habilitado para prever as vendas e sugerir a compra.</noscript>
 
-  <script src="js/datas.js?v=20261127f"></script>
-  <script src="js/estado.js?v=20261127f"></script>
-  <script src="js/produtos.js?v=20261127f"></script>
-  <script src="js/vendas.js?v=20261127f"></script>
-  <script src="js/previsao.js?v=20261127f"></script>
-  <script src="js/compras.js?v=20261127f"></script>
-  <script src="js/charts.js?v=20261127f"></script>
-  <script src="js/app.js?v=20261127f"></script>
+  <script src="js/datas.js?v=20261127g"></script>
+  <script src="js/estado.js?v=20261127g"></script>
+  <script src="js/produtos.js?v=20261127g"></script>
+  <script src="js/vendas.js?v=20261127g"></script>
+  <script src="js/previsao.js?v=20261127g"></script>
+  <script src="js/compras.js?v=20261127g"></script>
+  <script src="js/charts.js?v=20261127g"></script>
+  <script src="js/app.js?v=20261127g"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@
 - O mercadinho compra, estoca e vende. A rotina é semanal.
 - O erro aparece rápido: falta na prateleira, sobra no estoque ou capital parado.
 - A planilha registra o passado; não responde “quanto comprar agora?”.
-- As vendas são registradas por dia; a decisão de compra é semanal. O exemplo tem 10 produtos e 12 semanas de histórico diário, e prevê 4 semanas.
+- As vendas são registradas por dia; a decisão de compra é semanal. O exemplo tem 10 produtos e 52 semanas de histórico diário, e prevê 4 semanas.
 
 ## 3. Problema (45 s)
 
@@ -34,7 +34,7 @@
 - **Dados:** produtos, vendas diárias, estoque atual e estoque mínimo.
 - **Modelos:** média móvel, suavização exponencial, regressão e backtest.
 - **Conhecimento:** unidade de medida, estoque mínimo e regra de compra.
-- **Interface:** Compras, Vendas e Produtos.
+- **Interface:** Compras, Previsão, Vendas e Produtos.
 - “O SAD não substitui o caixa/ERP: consome os dados e devolve decisão.”
 
 ## 6. Previsão (1 min)
@@ -43,14 +43,14 @@
 - Menos de 4 semanas: sem previsão.
 - De 4 a 7 semanas: média móvel.
 - A partir de 8 semanas: backtest nas últimas 4 semanas e escolha automática pelo menor MAE.
-- Exemplo: arroz com MAE 1,8 unidade e MAPE 4,4%; leite com MAE 1,5 e MAPE 2,7%.
-- “O erro está na tela, dentro de ‘Como calculamos’. Não é caixa-preta.”
+- Exemplo: arroz com MAE 2,8 unidade e MAPE 6,7%; leite com MAE 4,8 e MAPE 7,5%.
+- “O erro está na tela, na aba Previsão. Não é caixa-preta.”
 
 ## 7. Regra da compra (1 min 10 s)
 
 - `necessidade = max(0, previsão + estoque mínimo − estoque atual)`.
 - `un` arredonda para cima; `kg` e `L` usam uma casa decimal.
-- Exemplo do arroz: 38,8 + 4 − 8 = 34,8 → **35 unidades**; a R$ 22,50 → **R$ 787,50**.
+- Exemplo do arroz: 39,1 + 4 − 8 = 35,1 → **36 unidades**; a R$ 22,50 → **R$ 810,00**.
 - O dono decide a compra final; o app é uma sugestão.
 - Limite: o estoque é atualizado manualmente; o app não é um PDV.
 
@@ -58,14 +58,15 @@
 
 1. Abrir **Compras**: mostrar a lista, o custo total e os produtos sem dados.
 2. Selecionar **Arroz**: abrir o gráfico 12 + 4 e “Como calculamos”.
-3. Ir para **Vendas**: lançar o dia, alterar uma quantidade, salvar e alternar **Dia / Semana / Mês / Ano** no resumo.
-4. Voltar para **Compras**: mostrar a previsão e a compra recalculadas.
-5. Ir para **Produtos**: mostrar o cadastro, o exemplo e o “Limpar dados”.
-6. Mostrar a visão **Mês** e **Ano** no resumo de Vendas.
+3. Ir para **Previsão**: mostrar a semana de referência, os dois gráficos de 52 + 4, a tabela de erro e as próximas 4 semanas. Trocar o método e voltar para o automático.
+4. Ir para **Vendas**: lançar o dia, alterar uma quantidade, salvar e alternar **Dia / Semana / Mês / Ano** no resumo.
+5. Voltar para **Compras**: mostrar a previsão e a compra recalculadas.
+6. Ir para **Produtos**: mostrar o cadastro, o exemplo e o “Limpar dados”.
+7. Mostrar a visão **Mês** e **Ano** no resumo de Vendas.
 
 ## 9. Entrega e limites (50 s)
 
-- **Entrega:** 3 abas, previsão automática, compra sugerida, exemplo rotulado, dados no navegador, 73 testes e deploy no GitHub Pages.
+- **Entrega:** 4 abas, previsão com 52 + 4, compra sugerida, exemplo rotulado, dados no navegador, 74 testes e deploy no GitHub Pages.
 - **Limites:** estoque manual; sem lead time, validade, orçamento, fornecedores, CSV ou multiusuário.
 - **Próximo passo:** validar com um mercadinho real e, depois, integrar ao caixa/ERP.
 - A versão frigorífico ficou preservada como legado no Git.
@@ -89,19 +90,20 @@ Menos de 4 semanas: sem previsão. De 4 a 7: média móvel. A partir de 8: backt
 O MVP não modela validade. É uma evolução natural: incluir validade, lead time e alerta de vencimento. Hoje o dono controla isso manualmente.
 
 **“Como você sabe que está certo?”**
-73 testes automatizados, smoke test com Playwright e um conjunto de exemplo reproduzível. A validação com dados reais de um mercadinho é o próximo passo.
+74 testes automatizados, smoke test com Playwright e um conjunto de exemplo reproduzível. A validação com dados reais de um mercadinho é o próximo passo.
 
 **“O que é real e o que é ilustrativo?”**
-O conjunto inicial de 10 produtos e 12 semanas é ilustrativo e está rotulado. Os dados que o dono digita são reais e ficam no navegador. Não há dados públicos nesta versão.
+O conjunto inicial de 10 produtos e 52 semanas é ilustrativo e está rotulado. Os dados que o dono digita são reais e ficam no navegador. Não há dados públicos nesta versão.
 
 **“Por que o estoque é manual?”**
 Para manter o MVP simples e não duplicar um PDV. O dono atualiza o estoque depois de comprar/vender; a recomendação usa esse número.
 
 ## Checklist antes de apresentar
 
-- [ ] `npm test` verde (73 testes).
+- [ ] `npm test` verde (74 testes).
 - [ ] App aberto em `http://localhost:8000` com o exemplo carregado.
 - [ ] Slides em `http://localhost:8000/slides.html` ou `slides.pdf`.
 - [ ] Abrir a aba Compras e deixar o Arroz selecionado.
-- [ ] Testar a demo uma vez: Vendas → lançar o dia → alternar período → salvar → Compras.
+- [ ] Abrir a aba Previsão e conferir os dois gráficos de 52 + 4.
+- [ ] Testar a demo uma vez: Previsão → método → Vendas → lançar o dia → alternar período → salvar → Compras.
 - [ ] Conferir o link do Pages no encerramento.

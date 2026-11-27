@@ -9,7 +9,7 @@
 npm test
 ```
 
-- **73 testes** com `node:test`, cobrindo estado/persistência, migração v1→v2, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento.
+- **74 testes** com `node:test`, cobrindo estado/persistência, migração v1→v2, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento.
 - `node --check` em todos os arquivos de `js/`.
 - `pdfinfo slides.pdf` → **10 páginas**.
 
@@ -25,38 +25,45 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 
 ### App
 
-1. **Compras:** a lista deve ter 10 produtos, o total deve ser **R$ 2.145,72** e o gráfico do Arroz deve aparecer.
-2. **Backtest:** abra “Como calculamos” e confira a tabela com 4 linhas (Semana, Previsto, Real).
-3. **Filtro:** digite `cafe`; deve aparecer **Café 500 g**, com o badge **1 de 10**.
-4. **Seleção:** clique em Feijão; o foco deve ir para o título do gráfico e a linha deve ficar com `aria-selected="true"`.
-5. **Vendas (dia):** a data deve abrir em hoje, com os 10 produtos e os valores do exemplo.
-6. **Períodos:** alterne **Dia / Semana / Mês / Ano** e confira o intervalo e o total:
-   - Dia: `27/11/2026` → **R$ 791,00**;
-   - Semana: `23/11 a 29/11/2026` → **R$ 3.364,40**;
-   - Mês: `Novembro de 2026` → **R$ 13.204,00**;
-   - Ano: `2026` → **R$ 39.810,30**.
-7. **Salvar dia:** altere o arroz para `9`, salve e volte para Compras; a previsão e a compra devem ser recalculadas. O dia continua salvo no `localStorage`.
-8. **Excluir dia:** exclua o dia salvo e confirme que ele some do resumo; a semana pode continuar com os outros dias.
-9. **Falha de gravação:** no console, faça `Storage.prototype.setItem = () => { throw new Error("quota"); }` e salve; o banner “Não foi possível gravar os dados…” deve aparecer, junto com o toast de erro.
-10. **Nome longo:** cadastre um produto com 60 caracteres sem espaço, abra Compras em 360 px e confira que a página não tem overflow horizontal.
-11. **Produtos:** adicionar, editar e remover; carregar exemplo e limpar dados.
-12. **Migração:** remova `mercadinho-serido:v2`, deixe um `localStorage` no formato v1 (semana) e recarregue; o app deve converter para dias, mostrar o aviso de migração e preservar o total semanal. O teste automatizado cobre o mesmo cenário.
-13. **Mobile:** em 360 px, as abas, as tabelas (com rolagem interna), o gráfico (com rolagem interna) e os botões continuam utilizáveis.
+1. **Compras:** a lista deve ter 10 produtos, o total deve ser **R$ 2.319,44** e o gráfico do Arroz deve aparecer.
+2. **Backtest da compra:** abra “Como calculamos” e confira a tabela com 4 linhas (Semana, Previsto, Real).
+3. **Previsão:** a aba deve mostrar a semana de referência (`23/11/2026`), **52 opções** de semana, dois gráficos de **52 + 4** e os dois produtos mais vendidos selecionados (Pão francês e Leite 1 L).
+4. **Método:** troque para **Média móvel**; o badge deve virar **Manual**, a tabela de erro deve mostrar “Média móvel (4 semanas)” e o método deve continuar valendo em Compras. Volte para **Automático**.
+5. **Produtos do gráfico:** troque o produto do primeiro gráfico; os dois seletores não podem repetir o mesmo produto.
+6. **Semana de referência:** escolha uma semana mais antiga; o histórico e a previsão devem ser recalculados, sem mexer nos lançamentos de Vendas.
+7. **Tabelas da Previsão:** a tabela de erro deve ter 10 produtos; a de próximas 4 semanas, 10 produtos e 4 colunas de datas.
+8. **Filtro em Compras:** digite `cafe`; deve aparecer **Café 500 g**, com o badge **1 de 10**.
+9. **Seleção em Compras:** clique em Feijão; o foco deve ir para o título do gráfico e a linha deve ficar com `aria-selected="true"`.
+10. **Vendas (dia):** a data deve abrir em hoje, com os 10 produtos e os valores do exemplo.
+11. **Períodos:** alterne **Dia / Semana / Mês / Ano** e confira o intervalo e o total:
+    - Dia: `27/11/2026` → **R$ 814,60**;
+    - Semana: `23/11 a 29/11/2026` → **R$ 3.555,50**;
+    - Mês: `Novembro de 2026` → **R$ 14.496,90**;
+    - Ano: `2026` → **R$ 158.168,40**.
+12. **Salvar dia:** altere o arroz para `9`, salve e volte para Compras; a previsão e a compra devem ser recalculadas. O dia continua salvo no `localStorage`.
+13. **Excluir dia:** exclua o dia salvo e confirme que ele some do resumo; a semana pode continuar com os outros dias.
+14. **Falha de gravação:** no console, faça `Storage.prototype.setItem = () => { throw new Error("quota"); }` e salve; o banner “Não foi possível gravar os dados…” deve aparecer, junto com o toast de erro.
+15. **Nome longo:** cadastre um produto com 60 caracteres sem espaço, abra Compras em 360 px e confira que a página não tem overflow horizontal.
+16. **Produtos:** adicionar, editar e remover; carregar exemplo e limpar dados.
+17. **Migração:** remova `mercadinho-serido:v2`, deixe um `localStorage` no formato v1 (semana) e recarregue; o app deve converter para dias, mostrar o aviso de migração e preservar o total semanal. O teste automatizado cobre o mesmo cenário.
+18. **Mobile:** em 360 px, a sidebar vira uma faixa horizontal, as tabelas e os gráficos têm rolagem interna e a página não tem overflow horizontal.
 
 ### Slides
 
 1. Abra `http://localhost:8000/slides.html`.
 2. Devem existir **10 slides**; `→` avança e `←` volta.
-3. O PDF `slides.pdf` deve ter 10 páginas e abrir com o mesmo conteúdo.
-4. O link do app no slide final deve apontar para `https://emiyakiritsugu3.github.io/SAD_02/`.
+3. O slide de Previsão deve mostrar **52 + 4** e as métricas novas (Arroz MAE 2,8 / MAPE 6,7%; Leite MAE 4,8 / MAPE 7,5%).
+4. O PDF `slides.pdf` deve ter 10 páginas e abrir com o mesmo conteúdo.
+5. O link do app no slide final deve apontar para `https://emiyakiritsugu3.github.io/SAD_02/`.
 
 ## Última execução
 
-- `npm test` → **73/73 passando**.
-- Smoke do app em 1366×900 e 360×800 → sem erros de console, sem overflow.
-- Compras → total **R$ 2.145,72** (igual ao exemplo semanal anterior).
-- Vendas (exemplo em 27/11/2026) → Dia **R$ 791,00**, Semana **R$ 3.364,40**, Mês **R$ 13.204,00**, Ano **R$ 39.810,30**.
-- Salvar dia → previsão/compra recalculadas; `localStorage` v2 com 82 dias no exemplo.
+- `npm test` → **74/74 passando**.
+- Smoke do app em 1440×950 e 360×800 → sem erros de console, sem overflow.
+- Compras → total **R$ 2.319,44**.
+- Vendas (exemplo em 27/11/2026) → Dia **R$ 814,60**, Semana **R$ 3.555,50**, Mês **R$ 14.496,90**, Ano **R$ 158.168,40**.
+- Previsão → 52 opções de semana, 2 gráficos de 52 + 4, 10 linhas na tabela de erro, 10 produtos × 4 semanas na tabela de próximas semanas.
+- Salvar dia → previsão/compra recalculadas; `localStorage` v2 com 362 dias no exemplo.
 - Falha de `setItem` → banner persistente + toast de erro.
 - Nome de 60 caracteres → sem overflow em 360 px.
 - Filtro `cafe` → Café encontrado; badge atualizado.
