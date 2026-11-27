@@ -1,7 +1,7 @@
 // Estado do Mercadinho Seridó: persistência, validação e dados de exemplo.
 const Estado = (() => {
   const CHAVE = "mercadinho-serido:v1";
-  const UNIDADES = ["un", "kg", "L"];
+  const UNIDADES = new Set(["un", "kg", "L"]);
   const AVISO = "Não foi possível carregar os dados salvos. Carregamos o exemplo.";
 
   const PRODUTOS_EXEMPLO = [
@@ -19,7 +19,7 @@ const Estado = (() => {
 
   function mulberry32(a) {
     return function () {
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      a |= 0; a = (a + 0x6D2B79F5) | 0; // NOSONAR — coerção int32 intencional do PRNG
       let t = Math.imul(a ^ (a >>> 15), 1 | a);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -34,7 +34,7 @@ const Estado = (() => {
   }
 
   function normalizarSemana(data = new Date()) {
-    const base = data instanceof Date ? new Date(data) : new Date(data);
+    const base = new Date(data);
     if (Number.isNaN(base.getTime())) return formatarISO(new Date());
     base.setHours(12, 0, 0, 0);
     base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
@@ -79,34 +79,40 @@ const Estado = (() => {
     return typeof valor === "number" && Number.isFinite(valor) && valor >= 0;
   }
 
+  function validarProduto(produto, ids) {
+    if (!produto || typeof produto.id !== "string" || produto.id.length === 0) return false;
+    if (ids.has(produto.id)) return false;
+    ids.add(produto.id);
+    if (typeof produto.nome !== "string" || produto.nome.trim().length === 0) return false;
+    if (!UNIDADES.has(produto.unidade)) return false;
+    if (!numeroValido(produto.custo) || !numeroValido(produto.preco)) return false;
+    return numeroValido(produto.estoqueAtual) && numeroValido(produto.estoqueMinimo);
+  }
+
+  function validarSemana(semana, ids, datas) {
+    if (!semana || typeof semana.data !== "string") return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(semana.data)) return false;
+    if (new Date(`${semana.data}T12:00:00`).getDay() !== 1) return false;
+    if (datas.has(semana.data)) return false;
+    datas.add(semana.data);
+    if (!semana.valores || typeof semana.valores !== "object" || Array.isArray(semana.valores)) return false;
+    for (const [id, valor] of Object.entries(semana.valores)) {
+      if (!ids.has(id) || !numeroValido(valor)) return false;
+    }
+    return true;
+  }
+
   function validar(estado) {
     if (!estado || estado.versao !== 1) return false;
     if (!Array.isArray(estado.produtos) || !Array.isArray(estado.semanas)) return false;
     if (typeof estado.exemplo !== "boolean") return false;
-
     const ids = new Set();
     for (const produto of estado.produtos) {
-      if (!produto || typeof produto.id !== "string" || produto.id.length === 0) return false;
-      if (ids.has(produto.id)) return false;
-      ids.add(produto.id);
-      if (typeof produto.nome !== "string" || produto.nome.trim().length === 0) return false;
-      if (!UNIDADES.includes(produto.unidade)) return false;
-      if (!numeroValido(produto.custo) || !numeroValido(produto.preco)) return false;
-      if (!numeroValido(produto.estoqueAtual) || !numeroValido(produto.estoqueMinimo)) return false;
+      if (!validarProduto(produto, ids)) return false;
     }
-
-    const semanas = new Set();
+    const datas = new Set();
     for (const semana of estado.semanas) {
-      if (!semana || typeof semana.data !== "string") return false;
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(semana.data)) return false;
-      if (new Date(`${semana.data}T12:00:00`).getDay() !== 1) return false;
-      if (semanas.has(semana.data)) return false;
-      semanas.add(semana.data);
-      if (!semana.valores || typeof semana.valores !== "object" || Array.isArray(semana.valores)) return false;
-      for (const [id, valor] of Object.entries(semana.valores)) {
-        if (!ids.has(id)) return false;
-        if (!numeroValido(valor)) return false;
-      }
+      if (!validarSemana(semana, ids, datas)) return false;
     }
     return true;
   }
@@ -122,6 +128,7 @@ const Estado = (() => {
       if (!validar(salvo)) return { estado: estadoExemplo(), aviso: AVISO };
       return { estado: salvo, aviso: null };
     } catch (_) {
+      // localStorage indisponível ou JSON inválido: cai no exemplo com aviso.
       return { estado: estadoExemplo(), aviso: AVISO };
     }
   }
@@ -132,6 +139,7 @@ const Estado = (() => {
       storage.setItem(CHAVE, JSON.stringify(estado));
       return true;
     } catch (_) {
+      // Quota ou armazenamento indisponível: não interrompe a interface.
       return false;
     }
   }

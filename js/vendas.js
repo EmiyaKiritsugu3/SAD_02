@@ -45,7 +45,7 @@ const Vendas = (() => {
     for (const [id, valor] of Object.entries(valores ?? {})) {
       if (!ids.has(id)) continue;
       if (typeof valor !== "number" || !Number.isFinite(valor)) {
-        throw new Error("Quantidade inválida.");
+        throw new TypeError("Quantidade inválida.");
       }
       if (valor < 0) throw new Error("A quantidade não pode ser negativa.");
       if (valor > 0) {
@@ -84,7 +84,7 @@ const Vendas = (() => {
       .sort((a, b) => a.data.localeCompare(b.data));
     const primeira = ordenadas.findIndex((semana) => (semana.valores?.[produtoId] || 0) > 0);
     if (primeira < 0) return { semanas: [], valores: [] };
-    const ultima = ordenadas[ordenadas.length - 1].data;
+    const ultima = ordenadas.at(-1).data;
     const mapa = new Map(ordenadas.map((semana) => [semana.data, semana.valores?.[produtoId] || 0]));
     const datas = [];
     const valores = [];
@@ -126,7 +126,7 @@ const Vendas = (() => {
 
   function ultimaSemana(semanas) {
     if (!Array.isArray(semanas) || semanas.length === 0) return null;
-    return semanas.map((s) => s.data).sort().at(-1) ?? null;
+    return semanas.map((s) => s.data).sort((a, b) => a.localeCompare(b)).at(-1) ?? null;
   }
 
   function proximaSemana(semanas) {

@@ -142,7 +142,7 @@ button { cursor: pointer; }
   font-weight: 700;
   letter-spacing: 0.02em;
   background: rgba(201, 154, 75, 0.16);
-  color: #7a5517;
+  color: #5a3d0e;
   border: 1px solid rgba(201, 154, 75, 0.3);
   white-space: nowrap;
 }
@@ -395,7 +395,7 @@ tbody tr:last-child td { border-bottom: none; }
   border-left: 4px solid var(--gold);
   border-radius: 10px;
   background: rgba(201, 154, 75, 0.12);
-  color: #6b4d1c;
+  color: #5a3f14;
   font-size: 0.88rem;
 }
 .aviso.perigo { border-left-color: var(--danger); background: rgba(163, 58, 46, 0.08); color: var(--danger); }

@@ -185,11 +185,11 @@ const App = (() => {
       const previsao = item.semDados
         ? `<span class="sem-dados">sem dados</span>`
         : `<span class="previsao-valor">${fmtQtd(item.previsao)}</span>`;
-      const compra = item.semDados
-        ? `<span class="sem-dados">—</span>`
-        : item.sugestao === 0
-          ? `<span class="estoque-cobre">estoque cobre</span>`
-          : `<strong>${fmtQtd(item.sugestao)} ${esc(p.unidade)}</strong>`;
+      const compra = (() => {
+        if (item.semDados) return `<span class="sem-dados">—</span>`;
+        if (item.sugestao === 0) return `<span class="estoque-cobre">estoque cobre</span>`;
+        return `<strong>${fmtQtd(item.sugestao)} ${esc(p.unidade)}</strong>`;
+      })();
       const custo = item.semDados || item.sugestao === 0 ? "—" : fmtBRL(item.custo);
       return `
         <tr class="linha-produto ${p.id === produtoSel.id ? "selecionado" : ""}"
@@ -268,7 +268,7 @@ const App = (() => {
       ...prev.prev4.map((_, i) => fmtData(Vendas.adicionarSemanas(ultima, i + 1))),
     ];
     const historico = [...hist, null, null, null, null];
-    const previsao = [...Array(hist.length - 1).fill(null), hist.at(-1), ...prev.prev4];
+    const previsao = [...new Array(hist.length - 1).fill(null), hist.at(-1), ...prev.prev4];
     const grafico = Charts.linha({
       series: [
         { nome: "Histórico", valores: historico, cor: "#b5522f" },
@@ -335,11 +335,15 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         </tr>`;
     }).join("");
 
+    const rotuloUltima = ultima
+      ? `Última venda<br><strong>${fmtDataLonga(ultima)}</strong>`
+      : "Nenhuma venda registrada";
+
     app.innerHTML = paginaHead(
       "Rotina semanal",
       "Vendas",
       "Uma linha por produto. A previsão usa a última semana registrada.",
-      `<div class="semana-label">${ultima ? `Última venda<br><strong>${fmtDataLonga(ultima)}</strong>` : "Nenhuma venda registrada"}</div>`,
+      `<div class="semana-label">${rotuloUltima}</div>`,
     ) + `
       ${state.exemplo ? `<div class="aviso"><strong>Dados de exemplo.</strong> Edite ou limpe em Produtos para usar os seus.</div>` : ""}
       <section class="card" aria-labelledby="titulo-lancamento">
@@ -620,8 +624,9 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     if (!form.matches("#form-produto")) return;
     const dados = new FormData(form);
     const numero = (campo) => {
-      const bruto = String(dados.get(campo) ?? "").trim();
-      return bruto === "" ? NaN : Number(bruto);
+      const bruto = dados.get(campo);
+      const texto = bruto == null ? "" : String(bruto).trim();
+      return texto === "" ? Number.NaN : Number(texto);
     };
     const produto = {
       nome: dados.get("nome"),

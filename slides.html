@@ -38,6 +38,17 @@
     }
 
     * { box-sizing: border-box; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     html, body { margin: 0; height: 100%; }
     body {
       overflow: hidden;
@@ -812,6 +823,7 @@ custo     = sugestão × custo unitário</code>
           <div>
             <h3 style="margin-bottom: 10px;">Exemplo: arroz 5 kg</h3>
             <table style="width:100%; border-collapse: collapse; font-size: clamp(0.78rem, 1.15vw, 0.95rem);">
+              <thead class="sr-only"><tr><th scope="col">Indicador</th><th scope="col">Valor</th></tr></thead>
               <tbody>
                 <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Previsão da próxima semana</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;"><strong>38,8 un</strong></td></tr>
                 <tr><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); color: var(--muted);">Estoque atual</td><td style="padding: 9px 10px; border-bottom: 1px solid var(--line); text-align:right;">8 un</td></tr>

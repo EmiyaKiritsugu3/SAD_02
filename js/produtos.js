@@ -3,12 +3,20 @@ const Produtos = (() => {
   const UNIDADES = ["un", "kg", "L"];
 
   function slug(texto) {
-    return String(texto ?? "")
+    const limpo = String(texto ?? "")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .toLowerCase();
+    let saida = "";
+    for (const caractere of limpo) {
+      const valido = (caractere >= "a" && caractere <= "z") || (caractere >= "0" && caractere <= "9");
+      if (valido) {
+        saida += caractere;
+      } else if (saida.length > 0 && !saida.endsWith("-")) {
+        saida += "-";
+      }
+    }
+    return saida.replace(/-+$/g, "");
   }
 
   function validar(produto, existentes = [], idAtual = null) {
