@@ -1,4 +1,4 @@
-// Semanas de venda, séries por produto e resumo mensal.
+// Vendas diárias, série semanal e resumos por período.
 const Vendas = (() => {
   function formatarISO(data) {
     const ano = data.getFullYear();
@@ -21,6 +21,13 @@ const Vendas = (() => {
     return criada;
   }
 
+  function normalizarDia(data = new Date()) {
+    const base = paraData(data);
+    if (Number.isNaN(base.getTime())) return formatarISO(new Date());
+    base.setHours(12, 0, 0, 0);
+    return formatarISO(base);
+  }
+
   function segundaAtual() {
     const hoje = new Date();
     hoje.setHours(12, 0, 0, 0);
@@ -31,13 +38,14 @@ const Vendas = (() => {
   function normalizarSemana(data = new Date()) {
     const base = paraData(data);
     if (Number.isNaN(base.getTime())) return segundaAtual();
+    base.setHours(12, 0, 0, 0);
     base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
     return formatarISO(base);
   }
 
   function adicionarDias(dataISO, n) {
     const base = paraData(dataISO);
-    if (Number.isNaN(base.getTime())) return normalizarSemana(new Date());
+    if (Number.isNaN(base.getTime())) return normalizarDia(new Date());
     base.setDate(base.getDate() + Number(n || 0));
     return formatarISO(base);
   }
@@ -50,7 +58,7 @@ const Vendas = (() => {
     return adicionarDias(normalizarSemana(dataISO), 6);
   }
 
-  function salvarSemana(semanas, data, valores, produtos) {
+  function salvarDia(dias, data, valores, produtos) {
     if (!Array.isArray(produtos) || produtos.length === 0) {
       throw new Error("Cadastre pelo menos um produto.");
     }
@@ -71,81 +79,108 @@ const Vendas = (() => {
     if (total <= 0) {
       throw new Error("Registre pelo menos um produto com quantidade maior que zero.");
     }
-    const semana = { data: normalizarSemana(data), valores: limpos };
-    const outras = (Array.isArray(semanas) ? semanas : [])
-      .filter((s) => s.data !== semana.data);
-    return [...outras, semana].sort((a, b) => a.data.localeCompare(b.data));
+    const dia = { data: normalizarDia(data), valores: limpos };
+    const outros = (Array.isArray(dias) ? dias : []).filter((d) => d.data !== dia.data);
+    return [...outros, dia].sort((a, b) => a.data.localeCompare(b.data));
   }
 
-  function removerSemana(semanas, data) {
-    const alvo = normalizarSemana(data);
-    return (Array.isArray(semanas) ? semanas : []).filter((s) => s.data !== alvo);
+  function removerDia(dias, data) {
+    const alvo = normalizarDia(data);
+    return (Array.isArray(dias) ? dias : []).filter((d) => d.data !== alvo);
   }
 
-  function removerProduto(semanas, produtoId) {
-    return (Array.isArray(semanas) ? semanas : [])
-      .map((semana) => {
-        const valores = { ...semana.valores };
+  function removerProduto(dias, produtoId) {
+    return (Array.isArray(dias) ? dias : [])
+      .map((dia) => {
+        const valores = { ...dia.valores };
         delete valores[produtoId];
-        return { ...semana, valores };
+        return { ...dia, valores };
       })
-      .filter((semana) => Object.keys(semana.valores).length > 0)
+      .filter((dia) => Object.keys(dia.valores).length > 0)
       .sort((a, b) => a.data.localeCompare(b.data));
   }
 
-  function serieProduto(semanas, produtoId) {
-    const ordenadas = (Array.isArray(semanas) ? semanas : [])
+  function ultimoDia(dias) {
+    if (!Array.isArray(dias) || dias.length === 0) return null;
+    return dias.map((d) => d.data).sort((a, b) => a.localeCompare(b)).at(-1) ?? null;
+  }
+
+  function serieSemanal(dias, produtoId) {
+    const ordenados = (Array.isArray(dias) ? dias : [])
       .slice()
       .sort((a, b) => a.data.localeCompare(b.data));
-    const primeira = ordenadas.findIndex((semana) => (semana.valores?.[produtoId] || 0) > 0);
+    const primeira = ordenados.findIndex((dia) => (dia.valores?.[produtoId] || 0) > 0);
     if (primeira < 0) return { semanas: [], valores: [] };
-    const ultima = ordenadas.at(-1).data;
-    const mapa = new Map(ordenadas.map((semana) => [semana.data, semana.valores?.[produtoId] || 0]));
-    const datas = [];
-    const valores = [];
-    let data = ordenadas[primeira].data;
-    while (data <= ultima) {
-      datas.push(data);
-      valores.push(mapa.get(data) || 0);
-      data = adicionarSemanas(data, 1);
+    const primeiraSemana = normalizarSemana(ordenados[primeira].data);
+    const ultimaSemana = normalizarSemana(ordenados.at(-1).data);
+    const mapa = new Map();
+    for (const dia of ordenados) {
+      const semana = normalizarSemana(dia.data);
+      const valor = dia.valores?.[produtoId] || 0;
+      if (valor > 0) mapa.set(semana, (mapa.get(semana) || 0) + valor);
     }
-    return { semanas: datas, valores };
+    const semanas = [];
+    const valores = [];
+    let semana = primeiraSemana;
+    while (semana <= ultimaSemana) {
+      semanas.push(semana);
+      valores.push(mapa.get(semana) || 0);
+      semana = adicionarSemanas(semana, 1);
+    }
+    return { semanas, valores };
   }
 
-  function resumoMensal(semanas, produtos) {
-    const meses = new Map();
-    const ordenadas = (Array.isArray(semanas) ? semanas : [])
-      .slice()
-      .sort((a, b) => a.data.localeCompare(b.data));
-    for (const semana of ordenadas) {
-      const mes = semana.data.slice(0, 7);
-      if (!meses.has(mes)) {
-        const porProduto = {};
-        for (const produto of produtos) {
-          porProduto[produto.id] = { quantidade: 0, receita: 0 };
-        }
-        meses.set(mes, { mes, porProduto, totalReceita: 0 });
-      }
-      const registro = meses.get(mes);
+  function intervalo(periodo, referencia) {
+    const ref = normalizarDia(referencia);
+    if (periodo === "dia") return { inicio: ref, fim: ref };
+    if (periodo === "semana") {
+      const inicio = normalizarSemana(ref);
+      return { inicio, fim: adicionarDias(inicio, 6) };
+    }
+    if (periodo === "mes") {
+      const base = paraData(ref);
+      const ano = base.getFullYear();
+      const mes = base.getMonth();
+      return {
+        inicio: formatarISO(new Date(ano, mes, 1, 12)),
+        fim: formatarISO(new Date(ano, mes + 1, 0, 12)),
+      };
+    }
+    if (periodo === "ano") {
+      const ano = paraData(ref).getFullYear();
+      return { inicio: `${ano}-01-01`, fim: `${ano}-12-31` };
+    }
+    return intervalo("semana", ref);
+  }
+
+  function resumoPeriodo(dias, produtos, periodo = "semana", referencia = new Date()) {
+    const { inicio, fim } = intervalo(periodo, referencia);
+    const porProduto = {};
+    for (const produto of produtos) {
+      porProduto[produto.id] = { quantidade: 0, receita: 0 };
+    }
+    let totalReceita = 0;
+    for (const dia of (Array.isArray(dias) ? dias : [])) {
+      if (dia.data < inicio || dia.data > fim) continue;
       for (const produto of produtos) {
-        const quantidade = Number(semana.valores?.[produto.id] ?? 0);
+        const quantidade = Number(dia.valores?.[produto.id] ?? 0);
         const valida = Number.isFinite(quantidade) && quantidade > 0 ? quantidade : 0;
         const receita = valida * (Number(produto.preco) || 0);
-        registro.porProduto[produto.id].quantidade += valida;
-        registro.porProduto[produto.id].receita += receita;
-        registro.totalReceita += receita;
+        porProduto[produto.id].quantidade += valida;
+        porProduto[produto.id].receita += receita;
+        totalReceita += receita;
       }
     }
-    return [...meses.values()].sort((a, b) => a.mes.localeCompare(b.mes));
+    return { inicio, fim, porProduto, totalReceita };
   }
 
-  function ultimaSemana(semanas) {
-    if (!Array.isArray(semanas) || semanas.length === 0) return null;
-    return semanas.map((s) => s.data).sort((a, b) => a.localeCompare(b)).at(-1) ?? null;
+  function ultimaSemana(dias) {
+    const ultimo = ultimoDia(dias);
+    return ultimo ? normalizarSemana(ultimo) : null;
   }
 
-  function proximaSemana(semanas) {
-    const ultima = ultimaSemana(semanas);
+  function proximaSemana(dias) {
+    const ultima = ultimaSemana(dias);
     return ultima ? adicionarSemanas(ultima, 1) : null;
   }
 
@@ -153,16 +188,16 @@ const Vendas = (() => {
     return Boolean(ultima && adicionarSemanas(ultima, 2) < hoje);
   }
 
-  function totalSemana(valores) {
+  function totalDia(valores) {
     return Object.values(valores ?? {}).reduce((soma, valor) => {
       return Number.isFinite(valor) && valor > 0 ? soma + valor : soma;
     }, 0);
   }
 
   return {
-    normalizarSemana, adicionarDias, adicionarSemanas, fimSemana, salvarSemana,
-    removerSemana, removerProduto, serieProduto, resumoMensal, ultimaSemana,
-    proximaSemana, atrasada, totalSemana,
+    normalizarDia, normalizarSemana, adicionarDias, adicionarSemanas, fimSemana,
+    salvarDia, removerDia, removerProduto, ultimoDia, serieSemanal,
+    resumoPeriodo, ultimaSemana, proximaSemana, atrasada, totalDia,
   };
 })();
 

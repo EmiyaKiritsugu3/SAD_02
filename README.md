@@ -2,7 +2,7 @@
 
 App estático que ajuda o dono de um mercadinho de bairro em Caicó/RN a decidir **quanto comprar de cada produto para a próxima semana**.
 
-É uma **camada de decisão**, não um PDV nem um ERP. O dono continua usando o caixa para as vendas; o app usa o histórico semanal para prever a demanda e sugerir a compra.
+É uma **camada de decisão**, não um PDV nem um ERP. O dono continua usando o caixa para as vendas; o app usa o histórico diário de vendas para prever a demanda semanal e sugerir a compra.
 
 - **Usuário:** dono/gestor do mercadinho.
 - **Decisão:** quantidade de compra por produto na semana seguinte.
@@ -18,7 +18,7 @@ Cadastre nome, unidade (`un`, `kg` ou `L`), custo, preço, estoque atual e estoq
 
 ### 2. Vendas
 
-Lance uma semana por vez, com a quantidade vendida de cada produto. A data é normalizada para a segunda-feira da semana. A visão mensal mostra quantidade e receita por produto.
+Lance um dia por vez, com a quantidade vendida de cada produto. O resumo pode ser consultado por **dia, semana, mês ou ano**, com quantidade e receita por produto. O período é só para consulta: a previsão e a compra usam a semana.
 
 ### 3. Compras
 
@@ -43,12 +43,12 @@ O total da compra aparece no topo. O estoque é atualizado manualmente pelo dono
 
 ## Dados de exemplo
 
-Na primeira abertura, o app carrega 10 produtos e 12 semanas de vendas ilustrativas, marcadas como **dados de exemplo**. Em **Produtos** é possível:
+Na primeira abertura, o app carrega 10 produtos e 12 semanas de vendas diárias ilustrativas (a semana corrente vai até hoje), marcadas como **dados de exemplo**. Em **Produtos** é possível:
 
 - **Carregar exemplo** — restaura o conjunto de exemplo.
 - **Limpar dados** — apaga produtos e vendas e começa do zero.
 
-Qualquer edição remove o selo de exemplo. Os dados ficam no `localStorage` do navegador (`mercadinho-serido:v1`); nada é enviado a servidor.
+Qualquer edição remove o selo de exemplo. Os dados ficam no `localStorage` do navegador (`mercadinho-serido:v2`); nada é enviado a servidor.
 
 ## Como rodar
 
@@ -70,7 +70,7 @@ Abra:
 npm test
 ```
 
-**54 testes** com `node:test`, cobrindo estado/persistência, produtos, semanas, séries, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as três abas, o CRUD de produtos, o lançamento de vendas, o resumo mensal, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
+**61 testes** com `node:test`, cobrindo estado/persistência, migração do formato semanal, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento. O smoke test manual com Playwright está documentado em [`docs/verificacao.md`](docs/verificacao.md) e cobre as três abas, o CRUD de produtos, o lançamento diário, os períodos, o exemplo/limpar, o backtest, a falha de gravação e o mobile em 360 px.
 
 ## Estrutura
 
@@ -81,7 +81,7 @@ npm test
 ├── js/
 │   ├── estado.js      # localStorage, validação e exemplo
 │   ├── produtos.js    # cadastro e validação
-│   ├── vendas.js      # semanas, séries e resumo mensal
+│   ├── vendas.js      # dias, série semanal e resumos por período
 │   ├── previsao.js    # média móvel, SES, regressão e backtest
 │   ├── compras.js     # compra sugerida
 │   ├── charts.js      # gráfico SVG
@@ -92,7 +92,9 @@ npm test
 ├── slides/roteiro.md
 ├── docs/
 │   ├── superpowers/specs/2026-11-27-mercadinho-serido-design.md
+│   ├── superpowers/specs/2026-11-27-mercadinho-vendas-diarias-design.md
 │   ├── superpowers/plans/2026-11-27-mercadinho-serido-mvp.md
+│   ├── superpowers/plans/2026-11-27-mercadinho-vendas-diarias-mvp.md
 │   └── arquivo/       # legado do frigorífico
 └── .github/workflows/pages.yml
 ```
@@ -102,6 +104,7 @@ npm test
 - Estoque manual; o app não é PDV e não importa notas.
 - Sem lead time, validade/perecíveis, orçamento ou comparação de fornecedores.
 - Sem CSV, multiusuário ou integração com ERP.
+- A base de dados diária está pronta para uma futura integração com o caixa/PDV; a integração em si não faz parte do MVP.
 - A previsão é uma sugestão; o dono decide a compra final.
 
 Esses itens ficam como trabalho futuro. O foco do MVP é a decisão semanal, com uma interface simples e explicável.

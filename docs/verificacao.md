@@ -9,7 +9,7 @@
 npm test
 ```
 
-- **54 testes** com `node:test`, cobrindo estado/persistência, produtos, semanas, séries, previsão, compra sugerida e arredondamento.
+- **61 testes** com `node:test`, cobrindo estado/persistência, migração v1→v2, produtos, dias, série semanal, resumos por período, previsão, compra sugerida e arredondamento.
 - `node --check` em todos os arquivos de `js/`.
 - `pdfinfo slides.pdf` → **10 páginas**.
 
@@ -29,12 +29,19 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 2. **Backtest:** abra “Como calculamos” e confira a tabela com 4 linhas (Semana, Previsto, Real).
 3. **Filtro:** digite `cafe`; deve aparecer **Café 500 g**, com o badge **1 de 10**.
 4. **Seleção:** clique em Feijão; o foco deve ir para o título do gráfico e a linha deve ficar com `aria-selected="true"`.
-5. **Vendas:** a semana deve abrir em uma segunda-feira com os 10 produtos preenchidos.
-6. **Data vazia:** limpe o campo de data; ele deve voltar para a segunda anterior, manter os 10 valores e, ao salvar, preservar os 10 produtos.
-7. **Falha de gravação:** no console, faça `Storage.prototype.setItem = () => { throw new Error("quota"); }` e salve; o banner “Não foi possível gravar os dados…” deve aparecer, junto com o toast de erro.
-8. **Nome longo:** cadastre um produto com 60 caracteres sem espaço, abra Compras em 360 px e confira que a página não tem overflow horizontal.
-9. **Produtos:** adicionar, editar e remover; carregar exemplo e limpar dados.
-10. **Mobile:** em 360 px, as abas, a tabela (com rolagem interna), o gráfico (com rolagem interna) e os botões continuam utilizáveis.
+5. **Vendas (dia):** a data deve abrir em hoje, com os 10 produtos e os valores do exemplo.
+6. **Períodos:** alterne **Dia / Semana / Mês / Ano** e confira o intervalo e o total:
+   - Dia: `27/11/2026` → **R$ 1.432,10**;
+   - Semana: `23/11 a 29/11/2026` → **R$ 3.364,40**;
+   - Mês: `Novembro de 2026` → **R$ 13.964,50**;
+   - Ano: `2026` → **R$ 39.810,30**.
+7. **Salvar dia:** altere o arroz para `9`, salve e volte para Compras; a previsão e a compra devem ser recalculadas. O dia continua salvo no `localStorage`.
+8. **Excluir dia:** exclua o dia salvo e confirme que ele some do resumo e da série.
+9. **Falha de gravação:** no console, faça `Storage.prototype.setItem = () => { throw new Error("quota"); }` e salve; o banner “Não foi possível gravar os dados…” deve aparecer, junto com o toast de erro.
+10. **Nome longo:** cadastre um produto com 60 caracteres sem espaço, abra Compras em 360 px e confira que a página não tem overflow horizontal.
+11. **Produtos:** adicionar, editar e remover; carregar exemplo e limpar dados.
+12. **Migração:** com um `localStorage` no formato v1 (semana), recarregue; o app deve converter para dias, mostrar o aviso de migração e preservar o total semanal. O teste automatizado cobre o mesmo cenário.
+13. **Mobile:** em 360 px, as abas, as tabelas (com rolagem interna), o gráfico (com rolagem interna) e os botões continuam utilizáveis.
 
 ### Slides
 
@@ -45,9 +52,11 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 
 ## Última execução
 
-- `npm test` → **54/54 passando**.
+- `npm test` → **61/61 passando**.
 - Smoke do app em 1366×900 e 360×800 → sem erros de console, sem overflow.
-- Data vazia → semana preservada com 10 valores.
+- Compras → total **R$ 2.145,72** (igual ao exemplo semanal anterior).
+- Vendas → Dia **R$ 1.432,10**, Semana **R$ 3.364,40**, Mês **R$ 13.964,50**, Ano **R$ 39.810,30**.
+- Salvar dia → previsão/compra recalculadas; `localStorage` v2 com 82 dias no exemplo.
 - Falha de `setItem` → banner persistente + toast de erro.
 - Nome de 60 caracteres → sem overflow em 360 px.
 - Filtro `cafe` → Café encontrado; badge atualizado.
@@ -56,4 +65,4 @@ Abra `http://localhost:8000` e limpe o `localStorage` para carregar o exemplo.
 
 ## O que ainda é manual
 
-O smoke acima é um roteiro reproduzível, mas não está automatizado no CI. A suíte `npm test` cobre os módulos de domínio; o smoke cobre a interface. Automatizar o smoke com Playwright no CI é um próximo passo, junto com a validação em um mercadinho real.
+O smoke acima é um roteiro reproduzível, mas não está automatizado no CI. A suíte `npm test` cobre os módulos de domínio; o smoke cobre a interface. Automatizar o smoke com Playwright no CI é um próximo passo, junto com a validação em um mercadinho real e a integração com o caixa/PDV.

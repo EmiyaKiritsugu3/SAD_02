@@ -13,7 +13,7 @@
 - O mercadinho compra, estoca e vende. A rotina é semanal.
 - O erro aparece rápido: falta na prateleira, sobra no estoque ou capital parado.
 - A planilha registra o passado; não responde “quanto comprar agora?”.
-- O exemplo tem 10 produtos, 12 semanas de histórico e prevê 4 semanas.
+- As vendas são registradas por dia; a decisão de compra é semanal. O exemplo tem 10 produtos e 12 semanas de histórico diário, e prevê 4 semanas.
 
 ## 3. Problema (45 s)
 
@@ -31,7 +31,7 @@
 
 ## 5. Arquitetura SAD (50 s)
 
-- **Dados:** produtos, vendas semanais, estoque atual e estoque mínimo.
+- **Dados:** produtos, vendas diárias, estoque atual e estoque mínimo.
 - **Modelos:** média móvel, suavização exponencial, regressão e backtest.
 - **Conhecimento:** unidade de medida, estoque mínimo e regra de compra.
 - **Interface:** Compras, Vendas e Produtos.
@@ -58,14 +58,14 @@
 
 1. Abrir **Compras**: mostrar a lista, o custo total e os produtos sem dados.
 2. Selecionar **Arroz**: abrir o gráfico 12 + 4 e “Como calculamos”.
-3. Ir para **Vendas**: mostrar a semana, alterar uma quantidade e salvar.
+3. Ir para **Vendas**: lançar o dia, alterar uma quantidade, salvar e alternar **Dia / Semana / Mês / Ano** no resumo.
 4. Voltar para **Compras**: mostrar a previsão e a compra recalculadas.
 5. Ir para **Produtos**: mostrar o cadastro, o exemplo e o “Limpar dados”.
-6. Se der tempo, mostrar o **resumo mensal** em Vendas.
+6. Mostrar a visão **Mês** e **Ano** no resumo de Vendas.
 
 ## 9. Entrega e limites (50 s)
 
-- **Entrega:** 3 abas, previsão automática, compra sugerida, exemplo rotulado, dados no navegador, 54 testes e deploy no GitHub Pages.
+- **Entrega:** 3 abas, previsão automática, compra sugerida, exemplo rotulado, dados no navegador, 61 testes e deploy no GitHub Pages.
 - **Limites:** estoque manual; sem lead time, validade, orçamento, fornecedores, CSV ou multiusuário.
 - **Próximo passo:** validar com um mercadinho real e, depois, integrar ao caixa/ERP.
 - A versão frigorífico ficou preservada como legado no Git.
@@ -89,7 +89,7 @@ Menos de 4 semanas: sem previsão. De 4 a 7: média móvel. A partir de 8: backt
 O MVP não modela validade. É uma evolução natural: incluir validade, lead time e alerta de vencimento. Hoje o dono controla isso manualmente.
 
 **“Como você sabe que está certo?”**
-54 testes automatizados, smoke test com Playwright e um conjunto de exemplo reproduzível. A validação com dados reais de um mercadinho é o próximo passo.
+61 testes automatizados, smoke test com Playwright e um conjunto de exemplo reproduzível. A validação com dados reais de um mercadinho é o próximo passo.
 
 **“O que é real e o que é ilustrativo?”**
 O conjunto inicial de 10 produtos e 12 semanas é ilustrativo e está rotulado. Os dados que o dono digita são reais e ficam no navegador. Não há dados públicos nesta versão.
@@ -99,9 +99,9 @@ Para manter o MVP simples e não duplicar um PDV. O dono atualiza o estoque depo
 
 ## Checklist antes de apresentar
 
-- [ ] `npm test` verde (54 testes).
+- [ ] `npm test` verde (61 testes).
 - [ ] App aberto em `http://localhost:8000` com o exemplo carregado.
 - [ ] Slides em `http://localhost:8000/slides.html` ou `slides.pdf`.
 - [ ] Abrir a aba Compras e deixar o Arroz selecionado.
-- [ ] Testar a demo uma vez: Vendas → alterar → salvar → Compras.
+- [ ] Testar a demo uma vez: Vendas → lançar o dia → alternar período → salvar → Compras.
 - [ ] Conferir o link do Pages no encerramento.

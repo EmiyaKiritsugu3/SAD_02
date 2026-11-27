@@ -1,8 +1,11 @@
-// Estado do Mercadinho Seridó: persistência, validação e dados de exemplo.
+// Estado do Mercadinho Seridó: produtos, dias de venda e migração do formato semanal.
 const Estado = (() => {
-  const CHAVE = "mercadinho-serido:v1";
+  const CHAVE = "mercadinho-serido:v2";
+  const CHAVE_ANTERIOR = "mercadinho-serido:v1";
   const UNIDADES = new Set(["un", "kg", "L"]);
   const AVISO = "Não foi possível carregar os dados salvos. Carregamos o exemplo.";
+  const AVISO_MIGRACAO = "Dados semanais migrados para o formato diário.";
+  const PESOS = [0.12, 0.13, 0.14, 0.15, 0.16, 0.15, 0.15];
   let ultimoErroSalvar = null;
 
   const PRODUTOS_EXEMPLO = [
@@ -34,6 +37,20 @@ const Estado = (() => {
     return `${ano}-${mes}-${dia}`;
   }
 
+  function paraData(data) {
+    if (typeof data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      return new Date(`${data}T12:00:00`);
+    }
+    return new Date(data);
+  }
+
+  function normalizarDia(data = new Date()) {
+    const base = paraData(data);
+    if (Number.isNaN(base.getTime())) return formatarISO(new Date());
+    base.setHours(12, 0, 0, 0);
+    return formatarISO(base);
+  }
+
   function segundaAtual() {
     const hoje = new Date();
     hoje.setHours(12, 0, 0, 0);
@@ -42,25 +59,29 @@ const Estado = (() => {
   }
 
   function normalizarSemana(data = new Date()) {
-    const base = new Date(data);
+    const base = paraData(data);
     if (Number.isNaN(base.getTime())) return segundaAtual();
     base.setHours(12, 0, 0, 0);
     base.setDate(base.getDate() - ((base.getDay() + 6) % 7));
     return formatarISO(base);
   }
 
-  function adicionarSemanas(dataISO, n) {
+  function adicionarDias(dataISO, n) {
     const base = new Date(`${dataISO}T12:00:00`);
-    if (Number.isNaN(base.getTime())) return normalizarSemana(new Date());
-    base.setDate(base.getDate() + Number(n || 0) * 7);
+    if (Number.isNaN(base.getTime())) return normalizarDia(new Date());
+    base.setDate(base.getDate() + Number(n || 0));
     return formatarISO(base);
   }
 
-  function estadoVazio() {
-    return { versao: 1, produtos: [], semanas: [], exemplo: false };
+  function adicionarSemanas(dataISO, n) {
+    return adicionarDias(dataISO, Number(n || 0) * 7);
   }
 
-  function estadoExemplo(referencia = new Date()) {
+  function estadoVazio() {
+    return { versao: 2, produtos: [], dias: [], exemplo: false };
+  }
+
+  function gerarSemanasExemplo(referencia = new Date()) {
     const ultima = normalizarSemana(referencia);
     const inicio = adicionarSemanas(ultima, -11);
     const produtos = PRODUTOS_EXEMPLO.map(({ base, ...produto }) => ({
@@ -80,7 +101,49 @@ const Estado = (() => {
       });
       semanas.push({ data, valores });
     }
-    return { versao: 1, produtos, semanas, exemplo: true };
+    return { produtos, semanas, inicio };
+  }
+
+  function distribuirValores(valores, quantidadeDias) {
+    const pesos = PESOS.slice(0, quantidadeDias);
+    const soma = pesos.reduce((a, b) => a + b, 0);
+    const normalizados = pesos.map((p) => p / soma);
+    const dias = Array.from({ length: quantidadeDias }, () => ({}));
+    for (const [id, total] of Object.entries(valores ?? {})) {
+      let restante = Number(total) || 0;
+      if (restante <= 0) continue;
+      for (let i = 0; i < quantidadeDias - 1; i++) {
+        const alvo = Math.round(restante * normalizados[i]);
+        const valor = Math.min(restante, Math.max(0, alvo));
+        if (valor > 0) dias[i][id] = valor;
+        restante -= valor;
+      }
+      if (restante > 0) dias[quantidadeDias - 1][id] = Math.round(restante * 100) / 100;
+    }
+    return dias;
+  }
+
+  function distribuirSemanas(semanas, referencia) {
+    const referenciaISO = normalizarDia(referencia);
+    const semanaAtual = normalizarSemana(referencia);
+    const dias = [];
+    for (const semana of semanas) {
+      const atual = semana.data === semanaAtual;
+      const indiceDia = (new Date(`${referenciaISO}T12:00:00`).getDay() + 6) % 7;
+      const quantidade = atual ? indiceDia + 1 : 7;
+      const partes = distribuirValores(semana.valores, quantidade);
+      for (let i = 0; i < quantidade; i++) {
+        const data = adicionarDias(semana.data, i);
+        if (Object.keys(partes[i]).length > 0) dias.push({ data, valores: partes[i] });
+      }
+    }
+    return dias.sort((a, b) => a.data.localeCompare(b.data));
+  }
+
+  function estadoExemplo(referencia = new Date()) {
+    const { produtos, semanas, inicio } = gerarSemanasExemplo(referencia);
+    const dias = distribuirSemanas(semanas, referencia);
+    return { versao: 2, produtos, dias, exemplo: true };
   }
 
   function numeroValido(valor) {
@@ -97,24 +160,37 @@ const Estado = (() => {
     return numeroValido(produto.estoqueAtual) && numeroValido(produto.estoqueMinimo);
   }
 
-  function validarSemana(semana, ids, datas) {
-    if (!semana || typeof semana.data !== "string") return false;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(semana.data)) return false;
-    const data = new Date(`${semana.data}T12:00:00`);
-    if (formatarISO(data) !== semana.data) return false;
-    if (data.getDay() !== 1) return false;
-    if (datas.has(semana.data)) return false;
-    datas.add(semana.data);
-    if (!semana.valores || typeof semana.valores !== "object" || Array.isArray(semana.valores)) return false;
-    if (Object.keys(semana.valores).length === 0) return false;
-    for (const [id, valor] of Object.entries(semana.valores)) {
+  function validarDia(dia, ids, datas) {
+    if (!dia || typeof dia.data !== "string") return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dia.data)) return false;
+    if (normalizarDia(dia.data) !== dia.data) return false;
+    if (datas.has(dia.data)) return false;
+    datas.add(dia.data);
+    if (!dia.valores || typeof dia.valores !== "object" || Array.isArray(dia.valores)) return false;
+    if (Object.keys(dia.valores).length === 0) return false;
+    for (const [id, valor] of Object.entries(dia.valores)) {
       if (!ids.has(id) || !numeroValido(valor)) return false;
     }
     return true;
   }
 
   function validar(estado) {
-    if (estado?.versao !== 1) return false;
+    if (estado?.versao !== 2) return false;
+    if (!Array.isArray(estado.produtos) || !Array.isArray(estado.dias)) return false;
+    if (typeof estado.exemplo !== "boolean") return false;
+    const ids = new Set();
+    for (const produto of estado.produtos) {
+      if (!validarProduto(produto, ids)) return false;
+    }
+    const datas = new Set();
+    for (const dia of estado.dias) {
+      if (!validarDia(dia, ids, datas)) return false;
+    }
+    return true;
+  }
+
+  function validarV1(estado) {
+    if (!estado || estado.versao !== 1) return false;
     if (!Array.isArray(estado.produtos) || !Array.isArray(estado.semanas)) return false;
     if (typeof estado.exemplo !== "boolean") return false;
     const ids = new Set();
@@ -123,9 +199,42 @@ const Estado = (() => {
     }
     const datas = new Set();
     for (const semana of estado.semanas) {
-      if (!validarSemana(semana, ids, datas)) return false;
+      if (!semana || typeof semana.data !== "string") return false;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(semana.data)) return false;
+      if (normalizarDia(semana.data) !== semana.data) return false;
+      if (new Date(`${semana.data}T12:00:00`).getDay() !== 1) return false;
+      if (datas.has(semana.data)) return false;
+      datas.add(semana.data);
+      if (!semana.valores || typeof semana.valores !== "object" || Array.isArray(semana.valores)) return false;
+      if (Object.keys(semana.valores).length === 0) return false;
+      for (const [id, valor] of Object.entries(semana.valores)) {
+        if (!ids.has(id) || !numeroValido(valor)) return false;
+      }
     }
     return true;
+  }
+
+  function migrarV1(estadoAntigo) {
+    const mapa = new Map();
+    for (const semana of estadoAntigo.semanas) {
+      const partes = distribuirValores(semana.valores, 7);
+      for (let i = 0; i < 7; i++) {
+        const data = adicionarDias(semana.data, i);
+        const valores = partes[i];
+        if (Object.keys(valores).length === 0) continue;
+        if (!mapa.has(data)) mapa.set(data, {});
+        Object.assign(mapa.get(data), valores);
+      }
+    }
+    const dias = [...mapa.entries()]
+      .map(([data, valores]) => ({ data, valores }))
+      .sort((a, b) => a.data.localeCompare(b.data));
+    return {
+      versao: 2,
+      produtos: estadoAntigo.produtos,
+      dias,
+      exemplo: Boolean(estadoAntigo.exemplo),
+    };
   }
 
   function carregar(storage) {
@@ -134,11 +243,25 @@ const Estado = (() => {
       if (!alvo || typeof alvo.getItem !== "function") {
         return { estado: estadoExemplo(), aviso: null };
       }
-      const bruto = alvo.getItem(CHAVE);
-      if (!bruto) return { estado: estadoExemplo(), aviso: null };
-      const salvo = JSON.parse(bruto);
-      if (!validar(salvo)) return { estado: estadoExemplo(), aviso: AVISO };
-      return { estado: salvo, aviso: null };
+      const brutoV2 = alvo.getItem(CHAVE);
+      if (brutoV2) {
+        const salvo = JSON.parse(brutoV2);
+        if (validar(salvo)) return { estado: salvo, aviso: null };
+        return { estado: estadoExemplo(), aviso: AVISO };
+      }
+      const brutoV1 = alvo.getItem(CHAVE_ANTERIOR);
+      if (brutoV1) {
+        try {
+          const antigo = JSON.parse(brutoV1);
+          if (validarV1(antigo)) {
+            if (antigo.exemplo) return { estado: estadoExemplo(), aviso: null };
+            return { estado: migrarV1(antigo), aviso: AVISO_MIGRACAO };
+          }
+        } catch (_) {
+          // JSON antigo inválido: cai no exemplo abaixo.
+        }
+      }
+      return { estado: estadoExemplo(), aviso: null };
     } catch (erro) {
       const detalhe = erro instanceof Error ? erro.message : "erro desconhecido";
       return { estado: estadoExemplo(), aviso: `${AVISO} (${detalhe})` };
@@ -158,8 +281,9 @@ const Estado = (() => {
   }
 
   return {
-    CHAVE, estadoVazio, estadoExemplo, validar, carregar, salvar,
-    normalizarSemana, adicionarSemanas,
+    CHAVE, CHAVE_ANTERIOR, estadoVazio, estadoExemplo, validar, validarV1,
+    migrarV1, carregar, salvar, normalizarDia, normalizarSemana,
+    adicionarDias, adicionarSemanas,
     get ultimoErroSalvar() { return ultimoErroSalvar; },
   };
 })();

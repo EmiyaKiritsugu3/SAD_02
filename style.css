@@ -370,6 +370,8 @@ tbody tr:last-child td { border-bottom: none; }
 .mensal-topo { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
 .mensal-topo .campo { min-width: 180px; }
 .resumo-meses { margin-top: 18px; }
+.resumo-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+.resumo-total strong { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; }
 
 /* ---------- Produtos ---------- */
 .form-produto { margin-bottom: 18px; }
