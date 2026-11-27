@@ -25,12 +25,12 @@ test("exemplo v2 tem 10 produtos e dias até a referência", () => {
   assert.equal(s.versao, 2);
   assert.equal(s.produtos.length, 10);
   assert.equal(s.exemplo, true);
-  assert.equal(s.dias.length, 82);
+  assert.equal(s.dias.length, 362);
   assert.equal(s.dias.at(-1).data, "2026-11-27");
   assert.ok(s.dias.every((d) => d.data <= "2026-11-27"));
   assert.ok(s.dias.every((d) => Object.keys(d.valores).length > 0));
   const semanas = new Set(s.dias.map((d) => Estado.normalizarSemana(d.data)));
-  assert.equal(semanas.size, 12);
+  assert.equal(semanas.size, 52);
 });
 
 test("estado vazio v2 é válido", () => {
@@ -122,6 +122,22 @@ test("carregar v1 de exemplo regenera o exemplo diário", () => {
   assert.equal(estado.versao, 2);
   assert.equal(estado.exemplo, true);
   assert.equal(estado.dias.at(-1).data, Estado.normalizarDia(new Date()));
+});
+
+test("carregar exemplo v2 de 12 semanas regenera com 52", () => {
+  const storage = memoria();
+  const atual = Estado.estadoExemplo(new Date("2026-11-27T12:00:00"));
+  const inicioCorte = Estado.adicionarSemanas(Estado.normalizarSemana(new Date("2026-11-27T12:00:00")), -11);
+  const antigo = {
+    ...atual,
+    dias: atual.dias.filter((dia) => Estado.normalizarSemana(dia.data) >= inicioCorte),
+  };
+  assert.equal(new Set(antigo.dias.map((d) => Estado.normalizarSemana(d.data))).size, 12);
+  storage.dados[Estado.CHAVE] = JSON.stringify(antigo);
+  const { estado, aviso } = Estado.carregar(storage);
+  assert.equal(aviso, null);
+  assert.equal(estado.exemplo, true);
+  assert.equal(new Set(estado.dias.map((d) => Estado.normalizarSemana(d.data))).size, 52);
 });
 
 test("carregar e salvar não lançam com localStorage bloqueado", () => {

@@ -77,10 +77,10 @@ test("série semanal agrupa dias, preenche lacunas e começa na primeira venda",
   assert.deepEqual(Vendas.serieSemanal(dias, "sem-venda"), { semanas: [], valores: [] });
 });
 
-test("série semanal do exemplo tem 12 semanas", () => {
+test("série semanal do exemplo tem 52 semanas", () => {
   const s = Estado.estadoExemplo(new Date("2026-11-27T12:00:00"));
   const serie = Vendas.serieSemanal(s.dias, "p-arroz");
-  assert.equal(serie.semanas.length, 12);
+  assert.equal(serie.semanas.length, 52);
   assert.ok(serie.valores.every((v) => v > 0));
   assert.equal(Vendas.serieSemanal(s.dias, "p-arroz").valores.reduce((a, b) => a + b, 0), s.dias.reduce((a, d) => a + (d.valores["p-arroz"] || 0), 0));
 });

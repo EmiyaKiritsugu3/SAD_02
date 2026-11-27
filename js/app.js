@@ -9,6 +9,10 @@ const App = (() => {
     dataSelecionada: Vendas.normalizarDia(new Date()),
     periodo: "semana",
     periodoReferencia: Vendas.normalizarDia(new Date()),
+    metodo: "auto",
+    parametros: { janela: 4, alfa: 0.3 },
+    semanaReferencia: null,
+    produtosPrevisao: [],
     filtro: "",
     produtoEditando: null,
     erroPersistencia: null,
@@ -41,6 +45,11 @@ const App = (() => {
   function fmtDataLonga(iso) {
     if (!iso) return "";
     return new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR");
+  }
+
+  function fmtPct(valor) {
+    if (valor === null || valor === undefined || !Number.isFinite(Number(valor))) return "—";
+    return `${(Number(valor) * 100).toFixed(1).replace(".", ",")}%`;
   }
 
   function fmtMes(mes) {
@@ -113,6 +122,7 @@ const App = (() => {
     }
     state.dataSelecionada = Vendas.normalizarDia(state.dataSelecionada || new Date());
     state.periodoReferencia = Vendas.normalizarDia(state.periodoReferencia || state.dataSelecionada || new Date());
+    garantirSelecoes();
     state.produtoEditando = null;
   }
 
@@ -133,18 +143,126 @@ const App = (() => {
     if (aviso) toast(aviso, true);
   }
 
+  function semanasDisponiveis() {
+    const semanas = new Set();
+    for (const dia of state.dias) semanas.add(Vendas.normalizarSemana(dia.data));
+    return [...semanas].sort();
+  }
+
+  function garantirSelecoes() {
+    const ids = state.produtos.map((p) => p.id);
+    const alvo = Math.min(2, ids.length);
+    const atuais = [...new Set((state.produtosPrevisao || []).filter((id) => ids.includes(id)))];
+    if (atuais.length < alvo) {
+      const ranking = state.produtos
+        .map((p) => {
+          const valores = Vendas.serieSemanal(state.dias, p.id).valores;
+          return { id: p.id, total: valores.reduce((soma, valor) => soma + valor, 0) };
+        })
+        .sort((a, b) => b.total - a.total);
+      for (const item of ranking) {
+        if (atuais.length >= alvo) break;
+        if (!atuais.includes(item.id)) atuais.push(item.id);
+      }
+    }
+    state.produtosPrevisao = atuais.slice(0, alvo);
+    const semanas = semanasDisponiveis();
+    if (!semanas.includes(state.semanaReferencia)) {
+      state.semanaReferencia = semanas.at(-1) ?? null;
+    }
+  }
+
+  function normalizarParametros() {
+    const janela = Math.round(Number(state.parametros.janela));
+    state.parametros.janela = Number.isFinite(janela) ? Math.min(12, Math.max(1, janela)) : 4;
+    const alfa = Number(state.parametros.alfa);
+    state.parametros.alfa = Number.isFinite(alfa) ? Math.min(0.95, Math.max(0.05, alfa)) : 0.3;
+  }
+
+  function calcularPrevisao(serie) {
+    const valores = Array.isArray(serie) ? serie : [];
+    if (valores.length < 4) return null;
+    normalizarParametros();
+    const metodos = ["auto", "mediaMovel", "ses", "regressao"];
+    const metodo = metodos.includes(state.metodo) ? state.metodo : "auto";
+    if (metodo === "auto") {
+      if (valores.length < 8) {
+        const params = { janela: Math.min(4, valores.length) };
+        return {
+          metodo: "mediaMovel",
+          params,
+          prev4: Previsao.prever(valores, "mediaMovel", params, 4),
+          metricas: Previsao.backtest(valores, "mediaMovel", params, 4),
+        };
+      }
+      const escolha = Previsao.escolherMelhor(valores, 4);
+      return { ...escolha, prev4: Previsao.prever(valores, escolha.metodo, escolha.params, 4) };
+    }
+    const params = metodo === "ses"
+      ? { alfa: Number(state.parametros.alfa) || 0.3 }
+      : metodo === "mediaMovel"
+        ? { janela: Number(state.parametros.janela) || 4 }
+        : {};
+    return {
+      metodo,
+      params,
+      prev4: Previsao.prever(valores, metodo, params, 4),
+      metricas: Previsao.backtest(valores, metodo, params, 4),
+    };
+  }
+
+  function renderTopbar() {
+    const titulo = document.getElementById("titulo-aba");
+    const subtitulo = document.getElementById("subtitulo-aba");
+    const acoes = document.getElementById("topbar-acoes");
+    if (!titulo || !subtitulo || !acoes) return;
+    const info = {
+      compras: ["Compras", "Quanto comprar de cada produto para a próxima semana."],
+      previsao: ["Previsão de demanda", "Histórico, métodos e erro de previsão."],
+      vendas: ["Vendas", "Lance o dia e consulte por dia, semana, mês ou ano."],
+      produtos: ["Produtos", "Os produtos que o mercadinho compra e vende."],
+    }[state.aba] || ["Compras", ""];
+    titulo.textContent = info[0];
+    subtitulo.textContent = info[1];
+    acoes.innerHTML = "";
+
+    if (state.aba === "previsao") {
+      garantirSelecoes();
+      const semanas = semanasDisponiveis();
+      const opcoes = semanas.length
+        ? semanas.map((s) => `<option value="${s}" ${s === state.semanaReferencia ? "selected" : ""}>${fmtDataLonga(s)}</option>`).join("")
+        : `<option value="">Sem vendas</option>`;
+      acoes.innerHTML = `
+        <div class="semana">
+          <label for="semana-referencia">Semana de referência</label>
+          <select id="semana-referencia" ${semanas.length ? "" : "disabled"}>${opcoes}</select>
+        </div>
+        <button class="botao" type="button" data-acao="recalcular">Recalcular</button>`;
+    } else if (state.aba === "compras") {
+      const proxima = Vendas.proximaSemana(state.dias);
+      acoes.innerHTML = `<div class="semana-label">${proxima ? `Compra para a semana de<br><strong>${fmtDataLonga(proxima)}</strong>` : "Sem vendas registradas"}</div>`;
+    } else if (state.aba === "vendas") {
+      const ultimo = Vendas.ultimoDia(state.dias);
+      acoes.innerHTML = `<div class="semana-label">${ultimo ? `Último dia<br><strong>${fmtDataLonga(ultimo)}</strong>` : "Nenhuma venda registrada"}</div>`;
+    } else {
+      acoes.innerHTML = `<span class="badge ${state.exemplo ? "" : "ok"}">${state.exemplo ? "Dados de exemplo" : "Seus dados"}</span>`;
+    }
+  }
+
   function render() {
-    document.querySelectorAll(".aba[data-aba]").forEach((botao) => {
+    document.querySelectorAll(".nav-item[data-aba]").forEach((botao) => {
       const ativa = botao.dataset.aba === state.aba;
-      botao.classList.toggle("ativa", ativa);
+      botao.classList.toggle("ativo", ativa);
       if (ativa) botao.setAttribute("aria-current", "page");
       else botao.removeAttribute("aria-current");
     });
     const badge = document.getElementById("badge-exemplo");
     if (badge) badge.hidden = !state.exemplo;
     atualizarAvisoPersistencia();
+    renderTopbar();
 
-    if (state.aba === "vendas") renderVendas();
+    if (state.aba === "previsao") renderPrevisao();
+    else if (state.aba === "vendas") renderVendas();
     else if (state.aba === "produtos") renderProdutos();
     else renderCompras();
   }
@@ -153,22 +271,211 @@ const App = (() => {
     const mapa = {};
     for (const produto of state.produtos) {
       const serie = Vendas.serieSemanal(state.dias, produto.id);
-      const prev = Previsao.paraSerie(serie.valores);
+      const prev = calcularPrevisao(serie.valores);
       mapa[produto.id] = { serie, prev, previsao: prev?.prev4?.[0] ?? null };
     }
     return mapa;
   }
 
-  function paginaHead(eyebrow, titulo, subtitulo, direita = "") {
-    return `
-      <div class="pagina-head">
-        <div>
-          <p class="eyebrow">${esc(eyebrow)}</p>
-          <h1>${esc(titulo)}</h1>
-          <p class="subtitulo">${subtitulo}</p>
+  function previsoesReferencia() {
+    const mapa = {};
+    for (const produto of state.produtos) {
+      const completa = Vendas.serieSemanal(state.dias, produto.id);
+      const corte = Previsao.serieAte(completa.valores, completa.semanas, state.semanaReferencia);
+      mapa[produto.id] = {
+        semanas: corte.semanas,
+        valores: corte.serie,
+        prev: calcularPrevisao(corte.serie),
+      };
+    }
+    return mapa;
+  }
+
+  function renderPrevisao() {
+    const app = document.getElementById("app");
+    if (!app) return;
+
+    if (state.produtos.length === 0) {
+      app.innerHTML = estadoVazio(
+        "Cadastre um produto para prever",
+        "A previsão usa o histórico semanal de vendas de cada produto. Cadastre os produtos e lance alguns dias de venda.",
+        `<button class="botao" type="button" data-acao="ir-produtos">Cadastrar produtos</button>
+         <button class="botao secundario" type="button" data-acao="carregar-exemplo">Carregar exemplo</button>`,
+      );
+      return;
+    }
+
+    garantirSelecoes();
+    normalizarParametros();
+    const mapa = previsoesReferencia();
+    const referencia = state.semanaReferencia || semanasDisponiveis().at(-1);
+    const opcoesMetodo = [
+      ["auto", "Automático (menor MAE)"],
+      ["mediaMovel", "Média móvel"],
+      ["ses", "Suavização exponencial"],
+      ["regressao", "Regressão linear"],
+    ].map(([valor, rotulo]) => `<option value="${valor}" ${state.metodo === valor ? "selected" : ""}>${rotulo}</option>`).join("");
+
+    const controles = `
+      <section class="card span-2" aria-labelledby="titulo-metodo">
+        <div class="card-head">
+          <div>
+            <h2 id="titulo-metodo">Método de previsão</h2>
+            <p>Escolha o método ou deixe o automático decidir pelo menor MAE no backtest.</p>
+          </div>
+          <span class="badge ${state.metodo === "auto" ? "ok" : ""}">${state.metodo === "auto" ? "Automático" : "Manual"}</span>
         </div>
-        ${direita}
-      </div>`;
+        <div class="form-grid">
+          <label class="campo">Método
+            <select data-campo="metodo">${opcoesMetodo}</select>
+          </label>
+          <label class="campo">Janela da média móvel
+            <input type="number" data-campo="janela" min="1" max="12" step="1" value="${state.parametros.janela}">
+          </label>
+          <label class="campo">Alfa da suavização
+            <input type="number" data-campo="alfa" min="0.05" max="0.95" step="0.05" value="${state.parametros.alfa}">
+          </label>
+        </div>
+        <p class="nota">A semana de referência no topo corta o histórico. O backtest treina antes das últimas 4 semanas e compara com o realizado. MAE é o erro médio absoluto; MAPE, o erro percentual médio. O método escolhido também alimenta a aba Compras.</p>
+      </section>`;
+
+    const graficos = state.produtosPrevisao.map((id, indice) => {
+      const produto = Produtos.porId(state.produtos, id);
+      if (!produto) return "";
+      const dados = mapa[produto.id];
+      const temPrevisao = Boolean(dados.prev);
+      const hist = dados.valores.slice(-52);
+      const histSemanas = dados.semanas.slice(-52);
+      const opcoesProduto = state.produtos.map((p) => `<option value="${esc(p.id)}" ${p.id === produto.id ? "selected" : ""}>${esc(p.nome)}</option>`).join("");
+      const futuras = temPrevisao
+        ? dados.prev.prev4.map((_, i) => fmtData(Vendas.adicionarSemanas(histSemanas.at(-1), i + 1)))
+        : [];
+
+      let grafico = `<p class="sem-dados">Sem vendas registradas para este produto.</p>`;
+      if (hist.length > 0) {
+        const labels = [...histSemanas.map(fmtData), ...futuras];
+        const historico = [...hist, ...new Array(futuras.length).fill(null)];
+        const linhaPrevisao = temPrevisao
+          ? [...new Array(Math.max(0, hist.length - 1)).fill(null), hist.at(-1), ...dados.prev.prev4]
+          : [];
+        grafico = Charts.linha({
+          series: temPrevisao
+            ? [
+                { nome: "Histórico", valores: historico, cor: "#b5522f" },
+                { nome: "Previsão", valores: linhaPrevisao, cor: "#5d6b4a", tracejado: true },
+              ]
+            : [{ nome: "Histórico", valores: historico, cor: "#b5522f" }],
+          labels,
+          height: 340,
+          rotuloY: produto.unidade,
+        });
+      }
+
+      const metricas = dados.prev?.metricas;
+      const reais = metricas?.reais || [];
+      const previstos = metricas?.previstos || [];
+      const backtest = reais.length
+        ? `Backtest — previsto: ${previstos.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ")} | real: ${reais.map((v) => `${fmtQtd(v)} ${produto.unidade}`).join(" · ")}`
+        : "Registre pelo menos 4 semanas até a referência para gerar a previsão e o backtest.";
+      const mae = metricas?.mae;
+      const mape = metricas?.mape;
+
+      return `
+        <section class="card" aria-labelledby="prev-${esc(produto.id)}">
+          <div class="card-head">
+            <div>
+              <h2 id="prev-${esc(produto.id)}">${esc(produto.nome)}</h2>
+              <p>Histórico de até 52 semanas e previsão das próximas 4.</p>
+            </div>
+            <label class="campo campo-produto">Produto
+              <select data-previsao-select="${indice}" aria-label="Produto do gráfico ${indice + 1}">${opcoesProduto}</select>
+            </label>
+          </div>
+          ${grafico}
+          ${temPrevisao ? `<div class="metricas">
+            <span>Método: <strong>${esc(metodoDetalhe(dados.prev))}</strong></span>
+            <span>MAE: <strong>${fmtQtd(mae)} ${esc(produto.unidade)}</strong></span>
+            <span>MAPE: <strong>${fmtPct(mape)}</strong></span>
+          </div>` : ""}
+          <p class="nota">${esc(backtest)}</p>
+        </section>`;
+    }).join("");
+
+    const linhasMetricas = state.produtos.map((produto) => {
+      const prev = mapa[produto.id].prev;
+      if (!prev) {
+        return `<tr><td>${esc(produto.nome)}</td><td>—</td><td class="num">—</td><td class="num">—</td></tr>`;
+      }
+      return `<tr>
+        <td>${esc(produto.nome)}</td>
+        <td>${esc(metodoDetalhe(prev))}</td>
+        <td class="num">${fmtQtd(prev.metricas?.mae)} ${esc(produto.unidade)}</td>
+        <td class="num">${fmtPct(prev.metricas?.mape)}</td>
+      </tr>`;
+    }).join("");
+
+    const semanasFuturas = referencia
+      ? [0, 1, 2, 3].map((i) => Vendas.adicionarSemanas(referencia, i + 1))
+      : [];
+    const linhasProximas = referencia ? state.produtos.map((produto) => {
+      const valores = [0, 1, 2, 3].map((i) => mapa[produto.id].prev?.prev4?.[i]);
+      return `<tr>
+        <td><span class="produto-nome"><strong>${esc(produto.nome)}</strong><small>${esc(produto.unidade)}</small></span></td>
+        ${valores.map((valor) => `<td class="num">${valor == null ? "—" : fmtQtd(valor)}</td>`).join("")}
+      </tr>`;
+    }).join("") : `<tr><td colspan="5" class="sem-dados">Sem vendas registradas até a referência.</td></tr>`;
+
+    app.innerHTML = `<div class="grid-2">
+      ${controles}
+      ${graficos}
+      <section class="card" aria-labelledby="titulo-metricas">
+        <div class="card-head">
+          <div>
+            <h2 id="titulo-metricas" tabindex="-1">Erro de previsão por produto</h2>
+            <p>MAE e MAPE do método escolhido para cada produto, no backtest de 4 semanas.</p>
+          </div>
+        </div>
+        <div class="tabela-wrap">
+          <table>
+            <caption>Quanto menor, melhor. O automático escolhe o menor MAE por produto.</caption>
+            <thead><tr><th>Produto</th><th>Método</th><th class="num">MAE</th><th class="num">MAPE</th></tr></thead>
+            <tbody>${linhasMetricas}</tbody>
+          </table>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="titulo-proximas">
+        <div class="card-head">
+          <div>
+            <h2 id="titulo-proximas">Próximas 4 semanas</h2>
+            <p>Previsão usada como entrada da lista de compras.</p>
+          </div>
+        </div>
+        <div class="tabela-wrap">
+          <table class="tabela-previsao">
+            <caption>Quantidade prevista por produto, na unidade de cada um.</caption>
+            <thead><tr><th>Produto</th>${semanasFuturas.map((s) => `<th class="num">${fmtData(s)}</th>`).join("")}</tr></thead>
+            <tbody>${linhasProximas}</tbody>
+          </table>
+        </div>
+      </section>
+      <section class="card span-2" aria-labelledby="titulo-como">
+        <div class="card-head">
+          <div>
+            <h2 id="titulo-como">Como o SAD prevê</h2>
+            <p>Transparência para o gestor e para a banca.</p>
+          </div>
+        </div>
+        <ul class="lista-explicacao">
+          <li><strong>Média móvel:</strong> média das últimas N semanas; reage rápido a mudanças, mas ignora tendência.</li>
+          <li><strong>Suavização exponencial:</strong> dá mais peso às semanas recentes; o alfa controla a velocidade de reação.</li>
+          <li><strong>Regressão linear:</strong> ajusta uma tendência aos dados; funciona melhor quando a demanda cresce ou cai de forma constante.</li>
+          <li><strong>Automático:</strong> testa os três métodos nas últimas 4 semanas e escolhe o de menor MAE.</li>
+          <li><strong>Semana de referência:</strong> corta o histórico no ponto escolhido; a previsão é sempre das 4 semanas seguintes.</li>
+          <li><strong>Semana corrente:</strong> se ainda não terminou, entra no histórico com os dias já lançados; a previsão é revista quando a semana fecha.</li>
+          <li><strong>Limite:</strong> o histórico é ilustrativo. Lance as vendas diárias para usar os dados reais do mercadinho.</li>
+        </ul>
+      </section>
+    </div>`;
   }
 
   function estadoVazio(titulo, texto, acoes) {
@@ -185,13 +492,12 @@ const App = (() => {
     if (!app) return;
 
     if (state.produtos.length === 0) {
-      app.innerHTML = paginaHead("Decisão da semana", "Compras", "Quanto comprar de cada produto para a próxima semana.")
-        + estadoVazio(
-          "Comece cadastrando seus produtos",
-          "Cadastre os produtos do mercadinho e lance as vendas de algumas semanas para o app prever a próxima compra.",
-          `<button class="botao" type="button" data-acao="ir-produtos">Cadastrar produtos</button>
-           <button class="botao secundario" type="button" data-acao="carregar-exemplo">Carregar exemplo</button>`,
-        );
+      app.innerHTML = estadoVazio(
+        "Comece cadastrando seus produtos",
+        "Cadastre os produtos do mercadinho e lance as vendas de algumas semanas para o app prever a próxima compra.",
+        `<button class="botao" type="button" data-acao="ir-produtos">Cadastrar produtos</button>
+         <button class="botao secundario" type="button" data-acao="carregar-exemplo">Carregar exemplo</button>`,
+      );
       return;
     }
 
@@ -243,14 +549,7 @@ const App = (() => {
       ? `<div class="aviso"><strong>Última venda antiga.</strong> A compra é para a semana seguinte à última venda registrada (${fmtDataLonga(proxima)}). Atualize as vendas para uma previsão mais recente.</div>`
       : "";
 
-    app.innerHTML = paginaHead(
-      "Decisão da semana",
-      "Compras",
-      "Quanto comprar de cada produto para a próxima semana.",
-      `<div class="semana-label">${proxima
-        ? `Compra para a semana de<br><strong>${fmtDataLonga(proxima)}</strong>`
-        : "Sem vendas registradas"}</div>`,
-    ) + `
+    app.innerHTML = `
       ${state.exemplo ? `<div class="aviso"><strong>Dados de exemplo.</strong> Edite ou limpe em Produtos para usar os seus.</div>` : ""}
       ${avisoSemVendas}
       ${avisoAtraso}
@@ -329,7 +628,7 @@ const App = (() => {
         ${grafico}
         <details class="detalhes">
           <summary>Como calculamos</summary>
-          <p><strong>Método:</strong> ${esc(metodoDetalhe(prev))}. O histórico é cortado na última semana lançada; a previsão é para a semana seguinte.</p>
+          <p><strong>Método:</strong> ${esc(metodoDetalhe(prev))}. O histórico é cortado na última semana lançada; a previsão é para a semana seguinte. O método pode ser trocado na aba Previsão.</p>
           <div class="metricas">
             <span>MAE: <strong>${mae == null ? "—" : `${fmtQtd(mae)} ${esc(produto.unidade)}`}</strong></span>
             <span>MAPE: <strong>${mape == null ? "—" : `${(mape * 100).toFixed(1).replace(".", ",")}%`}</strong></span>
@@ -356,20 +655,18 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     if (!app) return;
 
     if (state.produtos.length === 0) {
-      app.innerHTML = paginaHead("Rotina diária", "Vendas", "Registre o que vendeu em cada dia.")
-        + estadoVazio(
-          "Cadastre um produto primeiro",
-          "As vendas são lançadas por produto. Cadastre pelo menos um produto para começar.",
-          `<button class="botao" type="button" data-acao="ir-produtos">Cadastrar produtos</button>
-           <button class="botao secundario" type="button" data-acao="carregar-exemplo">Carregar exemplo</button>`,
-        );
+      app.innerHTML = estadoVazio(
+        "Cadastre um produto primeiro",
+        "As vendas são lançadas por produto. Cadastre pelo menos um produto para começar.",
+        `<button class="botao" type="button" data-acao="ir-produtos">Cadastrar produtos</button>
+         <button class="botao secundario" type="button" data-acao="carregar-exemplo">Carregar exemplo</button>`,
+      );
       return;
     }
 
     state.dataSelecionada = Vendas.normalizarDia(state.dataSelecionada);
     const dia = state.dias.find((d) => d.data === state.dataSelecionada);
     const valores = dia?.valores || {};
-    const ultimo = Vendas.ultimoDia(state.dias);
     const linhas = state.produtos.map((produto) => {
       const passo = produto.unidade === "un" ? "1" : "0.1";
       return `
@@ -393,14 +690,8 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       </tr>`;
     }).join("");
     const produtosComVenda = state.produtos.filter((p) => (resumo.porProduto[p.id]?.quantidade || 0) > 0).length;
-    const rotuloUltimo = ultimo ? `Último dia<br><strong>${fmtDataLonga(ultimo)}</strong>` : "Nenhuma venda registrada";
 
-    app.innerHTML = paginaHead(
-      "Rotina diária",
-      "Vendas",
-      "Lance o dia e consulte por período. A previsão e a compra usam a semana.",
-      `<div class="semana-label">${rotuloUltimo}</div>`,
-    ) + `
+    app.innerHTML = `
       ${state.exemplo ? `<div class="aviso"><strong>Dados de exemplo.</strong> Edite ou limpe em Produtos para usar os seus.</div>` : ""}
       <section class="card" aria-labelledby="titulo-lancamento">
         <div class="card-head">
@@ -480,12 +771,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
         </td>
       </tr>`).join("");
 
-    app.innerHTML = paginaHead(
-      "Cadastro",
-      "Produtos",
-      "Os produtos que o mercadinho compra e vende.",
-      `<span class="badge ${state.exemplo ? "" : "ok"}">${state.exemplo ? "Dados de exemplo" : "Seus dados"}</span>`,
-    ) + `
+    app.innerHTML = `
       <section class="card form-produto" aria-labelledby="titulo-form-produto">
         <div class="card-head">
           <div><h2 id="titulo-form-produto">${editando ? "Editar produto" : "Novo produto"}</h2><p>O custo é usado na compra; o preço, na receita.</p></div>
@@ -725,6 +1011,11 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
       const acao = botao.dataset.acao;
       if (acao === "ir-produtos") { state.aba = "produtos"; render(); }
       else if (acao === "ir-vendas") { state.aba = "vendas"; render(); }
+      else if (acao === "recalcular") {
+        render();
+        toast("Previsão recalculada.");
+        document.getElementById("titulo-metricas")?.focus();
+      }
       else if (acao === "salvar-dia") salvarDia();
       else if (acao === "excluir-dia") excluirDia();
       else if (acao === "dia-anterior") {
@@ -781,7 +1072,31 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     document.addEventListener("submit", salvarProduto);
 
     document.addEventListener("change", (event) => {
-      if (event.target.id === "dia-data") {
+      if (event.target.id === "semana-referencia") {
+        state.semanaReferencia = event.target.value;
+        render();
+        document.getElementById("semana-referencia")?.focus();
+      } else if (event.target.matches('[data-campo="metodo"]')) {
+        state.metodo = event.target.value;
+        render();
+        document.querySelector('[data-campo="metodo"]')?.focus();
+      } else if (event.target.matches('[data-campo="janela"], [data-campo="alfa"]')) {
+        const campo = event.target.dataset.campo;
+        state.parametros[campo] = event.target.value;
+        normalizarParametros();
+        render();
+        document.querySelector(`[data-campo="${campo}"]`)?.focus();
+      } else if (event.target.matches("[data-previsao-select]")) {
+        const indice = Number(event.target.dataset.previsaoSelect);
+        const escolhido = event.target.value;
+        const selecao = [...state.produtosPrevisao];
+        const conflito = selecao.findIndex((id, i) => id === escolhido && i !== indice);
+        if (conflito >= 0) selecao[conflito] = selecao[indice];
+        selecao[indice] = escolhido;
+        state.produtosPrevisao = selecao;
+        render();
+        document.querySelector(`[data-previsao-select="${indice}"]`)?.focus();
+      } else if (event.target.id === "dia-data") {
         if (!event.target.value) {
           render();
           document.getElementById("dia-data")?.focus();

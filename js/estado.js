@@ -7,6 +7,7 @@ const Estado = (() => {
   const CHAVE = "mercadinho-serido:v2";
   const CHAVE_ANTERIOR = "mercadinho-serido:v1";
   const UNIDADES = new Set(["un", "kg", "L"]);
+  const SEMANAS_EXEMPLO = 52;
   const AVISO = "Não foi possível carregar os dados salvos. Carregamos o exemplo.";
   const AVISO_MIGRACAO = "Dados semanais migrados para o formato diário.";
   const PESOS = [0.12, 0.13, 0.14, 0.15, 0.16, 0.15, 0.15];
@@ -40,14 +41,14 @@ const Estado = (() => {
 
   function gerarSemanasExemplo(referencia = new Date()) {
     const ultima = normalizarSemana(referencia);
-    const inicio = adicionarSemanas(ultima, -11);
+    const inicio = adicionarSemanas(ultima, -51);
     const produtos = PRODUTOS_EXEMPLO.map(({ base, ...produto }) => ({
       ...produto,
       criadoEm: inicio,
     }));
     const rngs = produtos.map((_, i) => mulberry32(42 + i));
     const semanas = [];
-    for (let semana = 0; semana < 12; semana++) {
+    for (let semana = 0; semana < SEMANAS_EXEMPLO; semana++) {
       const data = adicionarSemanas(inicio, semana);
       const valores = {};
       produtos.forEach((produto, i) => {
@@ -197,6 +198,10 @@ const Estado = (() => {
     };
   }
 
+  function semanasDoEstado(estado) {
+    return new Set((estado.dias || []).map((dia) => normalizarSemana(dia.data))).size;
+  }
+
   function carregar(storage) {
     try {
       const alvo = storage === undefined ? globalThis.localStorage : storage;
@@ -206,7 +211,12 @@ const Estado = (() => {
       const brutoV2 = alvo.getItem(CHAVE);
       if (brutoV2) {
         const salvo = JSON.parse(brutoV2);
-        if (validar(salvo)) return { estado: salvo, aviso: null };
+        if (validar(salvo)) {
+          if (salvo.exemplo && semanasDoEstado(salvo) < SEMANAS_EXEMPLO) {
+            return { estado: estadoExemplo(), aviso: null };
+          }
+          return { estado: salvo, aviso: null };
+        }
         return { estado: estadoExemplo(), aviso: AVISO };
       }
       const brutoV1 = alvo.getItem(CHAVE_ANTERIOR);
