@@ -16,7 +16,9 @@ const Produtos = (() => {
         saida += "-";
       }
     }
-    return saida.replace(/-+$/g, "");
+    while (saida.endsWith("-")) saida = saida.slice(0, -1);
+    return saida;
+    return saida;
   }
 
   function validar(produto, existentes = [], idAtual = null) {

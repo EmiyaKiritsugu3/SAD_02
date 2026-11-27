@@ -103,7 +103,7 @@ const Estado = (() => {
   }
 
   function validar(estado) {
-    if (!estado || estado.versao !== 1) return false;
+    if (estado?.versao !== 1) return false;
     if (!Array.isArray(estado.produtos) || !Array.isArray(estado.semanas)) return false;
     if (typeof estado.exemplo !== "boolean") return false;
     const ids = new Set();
@@ -127,8 +127,7 @@ const Estado = (() => {
       const salvo = JSON.parse(bruto);
       if (!validar(salvo)) return { estado: estadoExemplo(), aviso: AVISO };
       return { estado: salvo, aviso: null };
-    } catch (_) {
-      // localStorage indisponível ou JSON inválido: cai no exemplo com aviso.
+    } catch (_) { // NOSONAR — localStorage indisponível ou JSON inválido: cai no exemplo com aviso.
       return { estado: estadoExemplo(), aviso: AVISO };
     }
   }
@@ -138,8 +137,7 @@ const Estado = (() => {
       if (!storage || typeof storage.setItem !== "function") return false;
       storage.setItem(CHAVE, JSON.stringify(estado));
       return true;
-    } catch (_) {
-      // Quota ou armazenamento indisponível: não interrompe a interface.
+    } catch (_) { // NOSONAR — quota ou armazenamento indisponível: não interrompe a interface.
       return false;
     }
   }

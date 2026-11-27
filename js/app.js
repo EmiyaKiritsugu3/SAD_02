@@ -625,7 +625,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     const dados = new FormData(form);
     const numero = (campo) => {
       const bruto = dados.get(campo);
-      const texto = bruto == null ? "" : String(bruto).trim();
+      const texto = typeof bruto === "string" ? bruto.trim() : "";
       return texto === "" ? Number.NaN : Number(texto);
     };
     const produto = {
