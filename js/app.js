@@ -438,7 +438,7 @@ const App = (() => {
         <td><span class="produto-nome"><strong>${esc(produto.nome)}</strong><small>${esc(produto.unidade)}</small></span></td>
         ${valores.map((valor) => `<td class="num">${valor == null ? "—" : fmtQtd(valor)}</td>`).join("")}
       </tr>`;
-    }).join("") : `<tr><td colspan="5" class="sem-dados">Sem vendas registradas até a referência.</td></tr>`;
+    }).join("") : `<tr><td colspan="${semanasFuturas.length + 1}" class="sem-dados">Sem vendas registradas até a referência.</td></tr>`;
 
     app.innerHTML = `<div class="grid-2">
       ${controles}
