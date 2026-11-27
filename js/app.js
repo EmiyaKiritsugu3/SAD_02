@@ -375,6 +375,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
     const semana = state.semanas.find((s) => s.data === state.semanaSelecionada);
     const valores = semana?.valores || {};
     const ultima = Vendas.ultimaSemana(state.semanas);
+    const fimSemana = Vendas.fimSemana(state.semanaSelecionada);
     const linhas = state.produtos.map((produto) => {
       const passo = produto.unidade === "un" ? "1" : "0.1";
       return `
@@ -402,7 +403,11 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
           <span class="badge ${semana ? "ok" : ""}">${semana ? "Semana registrada" : "Nova semana"}</span>
         </div>
         <div class="semana-barra">
-          <label class="campo">Semana de
+          <div class="campo semana-atual">
+            <span>Semana</span>
+            <strong>${fmtDataLonga(state.semanaSelecionada)} a ${fmtDataLonga(fimSemana)}</strong>
+          </div>
+          <label class="campo">Ir para a semana
             <input id="semana-data" type="date" value="${state.semanaSelecionada}">
           </label>
           <div class="acoes">
@@ -421,7 +426,7 @@ mínimo = ${fmtQtd(produto.estoqueMinimo)}</code>
           ${semana ? `<button class="botao perigo" type="button" data-acao="excluir-semana">Excluir semana</button>` : ""}
           <button class="botao secundario" type="button" data-acao="alternar-mensal">Ver por mês</button>
         </div>
-        <p class="nota">Quantidades vazias valem zero. Uma semana sem nenhum valor não é salva.</p>
+        <p class="nota">A data é normalizada para a segunda-feira; o lançamento é da semana inteira. Quantidades vazias valem zero. Uma semana sem nenhum valor não é salva.</p>
       </section>`;
   }
 

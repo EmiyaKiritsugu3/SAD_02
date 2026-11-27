@@ -35,11 +35,19 @@ const Vendas = (() => {
     return formatarISO(base);
   }
 
-  function adicionarSemanas(dataISO, n) {
+  function adicionarDias(dataISO, n) {
     const base = paraData(dataISO);
     if (Number.isNaN(base.getTime())) return normalizarSemana(new Date());
-    base.setDate(base.getDate() + Number(n || 0) * 7);
+    base.setDate(base.getDate() + Number(n || 0));
     return formatarISO(base);
+  }
+
+  function adicionarSemanas(dataISO, n) {
+    return adicionarDias(dataISO, Number(n || 0) * 7);
+  }
+
+  function fimSemana(dataISO) {
+    return adicionarDias(normalizarSemana(dataISO), 6);
   }
 
   function salvarSemana(semanas, data, valores, produtos) {
@@ -152,9 +160,9 @@ const Vendas = (() => {
   }
 
   return {
-    normalizarSemana, adicionarSemanas, salvarSemana, removerSemana,
-    removerProduto, serieProduto, resumoMensal, ultimaSemana, proximaSemana,
-    atrasada, totalSemana,
+    normalizarSemana, adicionarDias, adicionarSemanas, fimSemana, salvarSemana,
+    removerSemana, removerProduto, serieProduto, resumoMensal, ultimaSemana,
+    proximaSemana, atrasada, totalSemana,
   };
 })();
 

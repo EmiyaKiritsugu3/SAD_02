@@ -118,3 +118,8 @@ test("atrasada avisa depois de duas semanas sem venda", () => {
   assert.equal(Vendas.atrasada("2026-11-09", "2026-11-23"), false);
   assert.equal(Vendas.atrasada(null, "2026-11-23"), false);
 });
+
+test("fimSemana retorna o domingo da semana", () => {
+  assert.equal(Vendas.fimSemana("2026-11-23"), "2026-11-29");
+  assert.equal(Vendas.fimSemana("2026-11-25"), "2026-11-29");
+});

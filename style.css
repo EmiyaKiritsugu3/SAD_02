@@ -354,6 +354,8 @@ tbody tr:last-child td { border-bottom: none; }
   border-radius: 14px;
 }
 .semana-barra .campo { min-width: 170px; }
+.semana-atual { color: var(--muted); font-size: 0.8rem; font-weight: 650; }
+.semana-atual strong { color: var(--ink); font-size: 0.95rem; font-weight: 700; font-family: Georgia, "Times New Roman", serif; }
 .semana-barra .acoes { margin-top: 0; }
 .tabela-vendas input {
   width: 110px;
